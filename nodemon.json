@@ -1,0 +1,6 @@
+{
+  "watch": ["src", ".env", ".dev.env"],
+  "ext": "ts,json,env",
+  "ignore": ["node_modules"],
+  "exec": "tsc && node dist/main.js"
+}   
