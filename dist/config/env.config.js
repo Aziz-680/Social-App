@@ -12,6 +12,20 @@ const envConfig = {
     },
     database: {
         MONGO_URI: (_c = process.env.MONGO_URI) !== null && _c !== void 0 ? _c : 'mongodb://localhost:27017/social_app_c45'
+    },
+    encryption: {
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',
+        IV_LENGTH: process.env.IV_LENGTH || '16'
+    },
+    jwt: {
+        user: {
+            accessSignature: process.env.USER_ACCESS_SECRET || 'fallbackUserAccessSecret',
+            refreshSignature: process.env.USER_REFRESH_SECRET || 'fallbackUserRefreshSecret'
+        },
+        admin: {
+            accessSignature: process.env.ADMIN_ACCESS_SECRET || 'fallbackAdminAccessSecret',
+            refreshSignature: process.env.ADMIN_REFRESH_SECRET || 'fallbackAdminRefreshSecret'
+        }
     }
 };
 exports.default = envConfig;

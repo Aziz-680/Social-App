@@ -15,7 +15,7 @@ export default abstract class BaseRepository<T> {
         return this.model.findOne(filters).select(select);
     }
 
-    findDocumentById(id:mongoose.Schema.Types.ObjectId):Promise<T | null>{
+    findDocumentById(id: string | any):Promise<T | null>{
         return this.model.findById(id);
     }
 

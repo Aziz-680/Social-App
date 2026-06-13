@@ -1,4 +1,7 @@
-export interface IUser {
+import { Document } from 'mongoose';
+
+// 1. Add "extends Document" right here
+export interface IUser extends Document {
     firstName: string;
     lastName: string;
     email: string;
@@ -8,4 +11,10 @@ export interface IUser {
     profilePicture?: string;
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+export interface IHttpAppError {
+    statusCode: number
+    code: string;
+    details: unknown
 }
