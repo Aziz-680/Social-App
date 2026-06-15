@@ -20,6 +20,10 @@ export enum PROVIDERS {
     FACEBOOK='facebook'
 };
 
+export enum GENDER {
+    MALE = 'male',
+    FEMALE = 'female'
+}
 // export const fileExtensions {
 //     image= ['jpg', 'jpeg', 'png', 'gif'],
 //     video= ['mp4', 'avi', 'mkv', 'mov'],

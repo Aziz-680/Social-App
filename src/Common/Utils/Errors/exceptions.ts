@@ -1,4 +1,6 @@
-import { HttpAppError } from "./app-error.js";
+import { HttpAppError  } from "./app-error.js";
+import { IHttpAppError } from "../../Types/interface.types";
+
 
 export class ConflictException extends HttpAppError {
     constructor(message = 'Conflict', details = null) {
@@ -12,9 +14,17 @@ export class NotFoundException extends HttpAppError {
     }
 }
 
-export class BadRequestException extends HttpAppError {
-    constructor(message = 'Bad Request', details = null) {
-        super(message , 400 , 'BAD_REQUEST' , details)
+
+export class BadRequestException extends Error implements IHttpAppError {
+    public statusCode = 400;
+    public code = 'BAD_REQUEST';
+    public details: unknown; // Added details property
+
+    // Accept an optional details argument here
+    constructor(message: string, details?: unknown) {
+        super(message);
+        this.details = details;
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
 

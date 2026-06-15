@@ -14,9 +14,14 @@ class NotFoundException extends app_error_js_1.HttpAppError {
     }
 }
 exports.NotFoundException = NotFoundException;
-class BadRequestException extends app_error_js_1.HttpAppError {
-    constructor(message = 'Bad Request', details = null) {
-        super(message, 400, 'BAD_REQUEST', details);
+class BadRequestException extends Error {
+    // Accept an optional details argument here
+    constructor(message, details) {
+        super(message);
+        this.statusCode = 400;
+        this.code = 'BAD_REQUEST';
+        this.details = details;
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
 exports.BadRequestException = BadRequestException;

@@ -16,3 +16,4 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./global-error-handler.middleware"), exports);
 __exportStar(require("./response-formatter.middleware"), exports);
+__exportStar(require("./validation.middleware"), exports);

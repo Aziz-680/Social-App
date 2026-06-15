@@ -36,4 +36,4 @@ const port = config_1.envConfig.app.port;
 app.listen(port, () => {
     console.log('Server is running on port', port);
 });
-// start vid 6
+// start vid 6 week 2

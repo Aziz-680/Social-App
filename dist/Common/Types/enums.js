@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CHANNELS = exports.PROVIDERS = exports.STATUS = exports.USER_ROLES = exports.TOKEN_TYPES = void 0;
+exports.CHANNELS = exports.GENDER = exports.PROVIDERS = exports.STATUS = exports.USER_ROLES = exports.TOKEN_TYPES = void 0;
 var TOKEN_TYPES;
 (function (TOKEN_TYPES) {
     TOKEN_TYPES["ACCESS"] = "ACCESS";
@@ -23,6 +23,11 @@ var PROVIDERS;
     PROVIDERS["FACEBOOK"] = "facebook";
 })(PROVIDERS || (exports.PROVIDERS = PROVIDERS = {}));
 ;
+var GENDER;
+(function (GENDER) {
+    GENDER["MALE"] = "male";
+    GENDER["FEMALE"] = "female";
+})(GENDER || (exports.GENDER = GENDER = {}));
 // export const fileExtensions {
 //     image= ['jpg', 'jpeg', 'png', 'gif'],
 //     video= ['mp4', 'avi', 'mkv', 'mov'],
