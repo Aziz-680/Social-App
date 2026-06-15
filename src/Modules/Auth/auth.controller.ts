@@ -9,7 +9,7 @@ const authController = Router();
 // Registration endpoint
 authController.post(
     '/register', 
-    validation(RegisterSchema), // Passed directly!
+    validation(RegisterSchema), 
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
         const result = await authService.registerUser(req.body);
         

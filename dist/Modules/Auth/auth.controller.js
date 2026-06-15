@@ -19,8 +19,7 @@ const validation_middleware_1 = __importDefault(require("../../Middlewares/valid
 const auth_validators_1 = require("../../Validators/auth.validators");
 const authController = (0, express_1.Router)();
 // Registration endpoint
-authController.post('/register', (0, validation_middleware_1.default)(auth_validators_1.RegisterSchema), // Passed directly!
-(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+authController.post('/register', (0, validation_middleware_1.default)(auth_validators_1.RegisterSchema), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield auth_service_1.default.registerUser(req.body);
     return {
         message: "User registered successfully",
