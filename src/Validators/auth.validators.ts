@@ -7,7 +7,7 @@ export const RegisterSchema = {
         lastName: z.string().min(2, "Last name must be at least 2 characters"),
         email: z.string().email("Invalid email format"),
         
-        Password: z.string().regex(
+        password: z.string().regex(
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
             "Password must be at least 8 characters, include an uppercase letter, lowercase letter, number, and special character"
         ),
@@ -21,8 +21,11 @@ export const RegisterSchema = {
 export const LoginSchema = {
     body: z.object({
         email: z.string().email("Invalid email format"),
-        Password: z.string().min(1, "Password is required")
+        password: z.string().min(1, "Password is required")
     })
 };
 
 
+export type RegisterBodyType = z.infer<typeof RegisterSchema.body>;
+
+export type LoginBodyType = z.infer<typeof LoginSchema.body>;

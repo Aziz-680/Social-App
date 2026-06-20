@@ -15,6 +15,18 @@ export class NotFoundException extends HttpAppError {
 }
 
 
+export class UnauthorizedException extends HttpAppError {
+    constructor(message = 'Unauthorized', details = null) {
+        super(message, 401, 'UNAUTHORIZED', details);
+    }
+}
+
+export class ForbiddenException extends HttpAppError {
+    constructor(message = 'Forbidden', details = null) {
+        super(message, 403, 'FORBIDDEN', details);
+    }
+}
+
 export class BadRequestException extends Error implements IHttpAppError {
     public statusCode = 400;
     public code = 'BAD_REQUEST';

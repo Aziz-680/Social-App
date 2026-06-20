@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import authService from "./auth.service";
 import { responseFormatter } from "../../Middlewares";
-import validation from "../../Middlewares/validation.middleware"; // Your instructor's middleware
+import validation from "../../Middlewares/validation.middleware"; 
 import { RegisterSchema, LoginSchema } from "../../Validators/auth.validators";
+import { RegisterBodyType, LoginBodyType } from "../../Common/Types";
 
 const authController = Router();
 
@@ -11,7 +12,8 @@ authController.post(
     '/register', 
     validation(RegisterSchema), 
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
-        const result = await authService.registerUser(req.body);
+        // Explicitly cast req.body to your Zod inferred type
+        const result = await authService.registerUser(req.body as RegisterBodyType);
         
         return { 
             message: "User registered successfully", 
@@ -26,7 +28,8 @@ authController.post(
     '/login', 
     validation(LoginSchema), 
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
-        const result = await authService.loginUser(req.body);
+        // Explicitly cast req.body to your Zod inferred type
+        const result = await authService.loginUser(req.body as LoginBodyType);
         
         return { 
             message: "User logged in successfully", 

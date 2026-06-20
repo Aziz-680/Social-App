@@ -25,13 +25,19 @@ class BaseRepository {
     findDocumentById(id) {
         return this.model.findById(id);
     }
-    findDocuments(filters, options) {
+    findDocuments(filters, options = {}) {
         const { limit, skip } = options, otherOptions = __rest(options, ["limit", "skip"]);
-        const query = this.model.find(filters, otherOptions);
+        const query = this.model.find(filters, null, otherOptions);
         if (limit && skip) {
             return query.limit(limit).skip(skip);
         }
         return query;
+    }
+    updateDocument(id, updateData, options = {}) {
+        return this.model.findByIdAndUpdate(id, updateData, Object.assign({ new: true }, options));
+    }
+    deleteDocument(id) {
+        return this.model.findByIdAndDelete(id);
     }
 }
 exports.default = BaseRepository;

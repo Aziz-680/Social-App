@@ -1,11 +1,12 @@
-import type { IUser } from "../../Common/Types/interface.types.js";
-import User from "../Models/user.model.js";
-import BaseRepository from "./base.repo.js";
+import { IUser } from "../../Common/Types/interface.types"; 
+import UserModel from "../Models/user.model";
+import BaseRepository from "./base.repo";
 
-class UserRepository extends BaseRepository<IUser>{
-    constructor(){
-        super(User)
+class UserRepository extends BaseRepository<IUser> {
+    constructor() {
+        super(UserModel);
     }
+
 }
 
-export default UserRepository
+export default UserRepository;

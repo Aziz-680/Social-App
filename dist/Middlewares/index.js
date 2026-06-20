@@ -17,3 +17,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./global-error-handler.middleware"), exports);
 __exportStar(require("./response-formatter.middleware"), exports);
 __exportStar(require("./validation.middleware"), exports);
+__exportStar(require("./auth.middleware"), exports);

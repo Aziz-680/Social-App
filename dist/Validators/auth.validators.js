@@ -8,7 +8,7 @@ exports.RegisterSchema = {
         firstName: zod_1.z.string().min(2, "First name must be at least 2 characters"),
         lastName: zod_1.z.string().min(2, "Last name must be at least 2 characters"),
         email: zod_1.z.string().email("Invalid email format"),
-        Password: zod_1.z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, "Password must be at least 8 characters, include an uppercase letter, lowercase letter, number, and special character"),
+        password: zod_1.z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, "Password must be at least 8 characters, include an uppercase letter, lowercase letter, number, and special character"),
         phoneNumber: zod_1.z.string().min(10, "Invalid phone number length"),
         gender: zod_1.z.nativeEnum(Types_1.GENDER).optional()
     })
@@ -16,6 +16,6 @@ exports.RegisterSchema = {
 exports.LoginSchema = {
     body: zod_1.z.object({
         email: zod_1.z.string().email("Invalid email format"),
-        Password: zod_1.z.string().min(1, "Password is required")
+        password: zod_1.z.string().min(1, "Password is required")
     })
 };
