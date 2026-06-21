@@ -15,15 +15,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const user_service_1 = __importDefault(require("./user.service"));
 const Middlewares_1 = require("../../Middlewares");
-const auth_middleware_1 = require("../../Middlewares/auth.middleware"); // Import the Guard!
+const auth_middleware_1 = require("../../Middlewares/auth.middleware");
 const userController = (0, express_1.Router)();
 // GET: Fetch logged-in user's profile
-userController.get('/profile', auth_middleware_1.authenticate, // 🛡️ The Guard intercepts the request here!
+userController.get('/profile', auth_middleware_1.authenticate, // <-- The Guard goes right here!
 (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // Securely pull the _id from the token payload, NOT the URL parameters!
+    // Because the Guard let them through, we safely have their ID in req.user!
+    console.log(req.user);
     const result = yield user_service_1.default.getUserProfile(req.user._id);
     return {
-        message: "User profile fetched successfully",
+        message: "Profile fetched successfully",
         data: result,
         meta: { statusCode: 200 }
     };

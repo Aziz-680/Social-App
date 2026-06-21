@@ -15,6 +15,8 @@ export default abstract class BaseRepository<T> {
     }
 
     findDocumentById(id: string | any): Promise<T | null> {
+                console.log(id);
+
         return this.model.findById(id);
     }
 

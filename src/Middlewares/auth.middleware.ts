@@ -3,10 +3,11 @@ import TokenService from "../Common/Services/token.service";
 import { UnauthorizedException } from "../Common/Utils/Errors/exceptions"; 
 
 export interface ISecureRequest extends Request {
-    user?: any; 
+    user?: any;
+    decodedData?: any;  
 }
 
-export const authenticate = (req: ISecureRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: ISecureRequest, res: Response, next: NextFunction) => {
     try {
         // 2. Extract the Authorization header
         const authHeader = req.headers.authorization;
@@ -20,10 +21,11 @@ export const authenticate = (req: ISecureRequest, res: Response, next: NextFunct
         const token = authHeader.split(' ')[1];
 
         // 5. Decode and verify the token using your TokenService
-        const decodedPayload = TokenService.decodeToken({ token, tokenType: 'access' });
+        const decodedPayload = await TokenService.decodeToken({ token, tokenType: 'ACCESS' });
 
         // 6. Attach the decoded payload (which has the _id) to the request object
-        req.user = decodedPayload;
+        req.user = decodedPayload.user;
+        req.decodedData = decodedPayload.decodedData;
 
         next();
     } catch (error: any) {
