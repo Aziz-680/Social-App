@@ -2,7 +2,7 @@ import { Router, Response, Request, NextFunction } from "express";
 import postService from "./post.service";
 import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewares";
 import validation from "../../Middlewares/validation.middleware";
-import { CreatePostSchema, LikePostSchema } from "../../Validators/post.validators";
+import { CreatePostSchema, LikePostSchema , DeletePostSchema} from "../../Validators/post.validators";
 
 const postController = Router();
 
@@ -39,6 +39,24 @@ postController.put(
         return { 
             message: "Post like toggled successfully", 
             data: result, 
+            meta: { statusCode: 200 } 
+        };
+    })
+);
+
+postController.delete(
+    '/:id',
+    authenticate, // 1. Guard checks IF they are logged in
+    validation(DeletePostSchema), // 2. Zod checks the ID format
+    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+        
+        // Normalize the postId param and pass the userId from the token to the service
+        const postId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        await postService.deletePost(postId, req.user._id);
+        
+        return { 
+            message: "Post deleted successfully", 
+            data: null, 
             meta: { statusCode: 200 } 
         };
     })

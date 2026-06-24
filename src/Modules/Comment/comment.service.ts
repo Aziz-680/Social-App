@@ -1,5 +1,6 @@
 import CommentRepository from "../../DB/Repos/comment.repo";
 import { CreateCommentBodyType } from "../../Common/Types/type.types"; 
+import { ForbiddenException, NotFoundException } from "../../Common/Utils/Errors/exceptions";
 
 class CommentService {
     constructor(
@@ -22,6 +23,23 @@ class CommentService {
         // Sort by oldest first so comments read naturally top-to-bottom
         const comments = await this.commentRepository.findDocuments({ postId }, { sort: { createdAt: 1 } });
         return comments;
+    };
+
+    // Inside comment.service.ts
+    deleteComment = async (commentId: string, userId: string) => {
+        const comment = await this.commentRepository.findDocumentById(commentId as any);
+
+        if (!comment) {
+            throw new NotFoundException("Comment not found");
+        }
+
+        // 🛡️ The exact same Authorization check!
+        if (comment.userId.toString() !== userId) {
+            throw new ForbiddenException("You are not authorized to delete someone else's comment");
+        }
+
+        await this.commentRepository.deleteDocument(commentId as any);
+        return null;
     };
 }
 

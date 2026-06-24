@@ -12,3 +12,9 @@ export const LikePostSchema = {
         id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Post ID format")
     })
 };
+
+export const DeletePostSchema = {
+    params: z.object({
+        id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Post ID format")
+    })
+};

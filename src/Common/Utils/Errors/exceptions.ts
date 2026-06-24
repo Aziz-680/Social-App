@@ -51,3 +51,4 @@ export class TooManyRequestsException extends HttpAppError {
         super(message , 429 , 'TOO_MANY_REQUESTS' , details)
     }
 }
+

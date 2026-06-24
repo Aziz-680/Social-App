@@ -1,6 +1,6 @@
 import PostRepository from "../../DB/Repos/post.repo";
 import { CreatePostBodyType } from "../../Common/Types/type.types"; 
-import { NotFoundException } from "../../Common/Utils";
+import { NotFoundException, ForbiddenException } from "../../Common/Utils";
 
 class PostService {
     constructor(
@@ -30,6 +30,26 @@ class PostService {
         }
 
         return updatedPost;
+    };
+
+    deletePost = async (postId: string, userId: string) => {
+        // 1. Find the post in the database
+        const post = await this.postRepository.findDocumentById(postId as any);
+
+        if (!post) {
+            throw new NotFoundException("Post not found");
+        }
+
+        // 2. 🛡️ THE AUTHORIZATION CHECK 
+        // We MUST convert the MongoDB ObjectId to a string before comparing it to the token's string ID!
+        if (post.userId.toString() !== userId) {
+            throw new ForbiddenException("You are not authorized to delete someone else's post");
+        }
+
+        // 3. If they pass the check, delete it!
+        await this.postRepository.deleteDocument(postId as any);
+
+        return null;
     };
 }
 
