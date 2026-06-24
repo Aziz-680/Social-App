@@ -6,3 +6,9 @@ export const CreatePostSchema = {
         media: z.array(z.string().url("Media items must be valid URLs")).optional(),
     }).strict()
 };
+
+export const LikePostSchema = {
+    params: z.object({
+        id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid Post ID format")
+    })
+};

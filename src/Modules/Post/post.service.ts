@@ -1,5 +1,6 @@
 import PostRepository from "../../DB/Repos/post.repo";
 import { CreatePostBodyType } from "../../Common/Types/type.types"; 
+import { NotFoundException } from "../../Common/Utils";
 
 class PostService {
     constructor(
@@ -19,6 +20,16 @@ class PostService {
     getAllPosts = async () => {
         const posts = await this.postRepository.findDocuments({}, { sort: { createdAt: -1 } });
         return posts;
+    };
+
+    toggleLike = async (postId: string, userId: string) => {
+        const updatedPost = await this.postRepository.toggleLike(postId, userId);
+        
+        if (!updatedPost) {
+            throw new NotFoundException("Post not found");
+        }
+
+        return updatedPost;
     };
 }
 

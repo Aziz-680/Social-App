@@ -2,7 +2,7 @@ import { Router, Response, Request, NextFunction } from "express";
 import postService from "./post.service";
 import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewares";
 import validation from "../../Middlewares/validation.middleware";
-import { CreatePostSchema } from "../../Validators/post.validators";
+import { CreatePostSchema, LikePostSchema } from "../../Validators/post.validators";
 
 const postController = Router();
 
@@ -22,6 +22,24 @@ postController.post(
             message: "Post created successfully", 
             data: result, 
             meta: { statusCode: 201 } 
+        };
+    })
+);
+
+postController.put(
+    '/:id/like',
+    authenticate, // 1. Must be logged in
+    validation(LikePostSchema), // 2. Ensure :id parameter is a valid MongoDB ID
+    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+        
+        // Normalize the postId param and pass the userId from the token
+        const postId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const result = await postService.toggleLike(postId, req.user._id);
+        
+        return { 
+            message: "Post like toggled successfully", 
+            data: result, 
+            meta: { statusCode: 200 } 
         };
     })
 );
