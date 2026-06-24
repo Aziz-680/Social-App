@@ -19,7 +19,7 @@ export interface IUser extends Document {
     firstName: string;
     lastName: string;
     email: string;
-    password: string; // Changed to lowercase to match screenshot!
+    password: string; 
     age?: number;
     phoneNumber?: string;
     role: USER_ROLES;

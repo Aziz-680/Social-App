@@ -21,7 +21,6 @@ const userController = (0, express_1.Router)();
 userController.get('/profile', auth_middleware_1.authenticate, // <-- The Guard goes right here!
 (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Because the Guard let them through, we safely have their ID in req.user!
-    console.log(req.user);
     const result = yield user_service_1.default.getUserProfile(req.user._id);
     return {
         message: "Profile fetched successfully",
