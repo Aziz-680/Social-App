@@ -23,7 +23,6 @@ class BaseRepository {
         return this.model.findOne(filters).select(select);
     }
     findDocumentById(id) {
-        console.log(id);
         return this.model.findById(id);
     }
     findDocuments(filters, options = {}) {

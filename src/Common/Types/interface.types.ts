@@ -38,6 +38,24 @@ export interface IUser extends Document {
     updatedAt?: Date;
 }
 
+
+export interface IPost extends Document {
+    userId: Types.ObjectId; 
+    content: string;
+    media?: string[]; 
+    likes?: Types.ObjectId[]; 
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface IComment extends Document {
+    userId: Types.ObjectId; 
+    postId: Types.ObjectId; 
+    content: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface IHttpAppError {
     statusCode: number
     code: string;

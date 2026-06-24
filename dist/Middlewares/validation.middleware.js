@@ -26,6 +26,7 @@ const validation = (schema) => {
                 field: err.path.map((segment) => String(segment)).join('.'),
                 message: err.message
             }));
+            console.log("🛑 Zod Validation Failed:", formattedErrors);
             return next(new Utils_1.BadRequestException('Validation error', formattedErrors));
         }
         next();

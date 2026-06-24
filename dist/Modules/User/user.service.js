@@ -27,7 +27,6 @@ class UserService {
             delete userProfile.password;
             return userProfile;
         });
-        // 2. Update a user's profile information
         this.updateUserProfile = (userId, updateData) => __awaiter(this, void 0, void 0, function* () {
             delete updateData.password;
             delete updateData.email;

@@ -12,7 +12,7 @@ export const RegisterSchema = {
             "Password must be at least 8 characters, include an uppercase letter, lowercase letter, number, and special character"
         ),
         
-        phoneNumber: z.string().min(10, "Invalid phone number length"),
+        phoneNumber: z.string().min(10, "Invalid phone number length").optional(),
         
         gender: z.nativeEnum(GENDER as any).optional() 
     })

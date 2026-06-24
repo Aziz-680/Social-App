@@ -14,7 +14,7 @@ const validation = (schema: SchemaType) => {
             const result = schema[validkey]?.safeParse(req[validkey]);
 
             if (result && !result.success) {
-               
+            
                 validationErrors.push(...result.error.issues);
             }
         }
@@ -24,7 +24,7 @@ const validation = (schema: SchemaType) => {
                 field: err.path.map((segment: any) => String(segment)).join('.'),
                 message: err.message
             }));
-
+            console.log("🛑 Zod Validation Failed:", formattedErrors);
             return next(new BadRequestException('Validation error', formattedErrors));
         }
         
