@@ -1,30 +1,43 @@
 import PostRepository from "../../DB/Repos/post.repo";
-import { CreatePostBodyType } from "../../Common/Types/type.types"; 
+import { CreatePostBodyType } from "../../Common/Types/type.types";
 import { NotFoundException, ForbiddenException } from "../../Common/Utils";
 
 class PostService {
     constructor(
         private postRepository: PostRepository = new PostRepository()
-    ) {}
+    ) { }
 
     createPost = async (userId: string, postData: CreatePostBodyType) => {
         const newPostData = {
             ...postData,
-            userId 
+            userId
         };
 
         const post = await this.postRepository.createDocument(newPostData);
         return post;
     };
 
-    getAllPosts = async () => {
-        const posts = await this.postRepository.findDocuments({}, { sort: { createdAt: -1 } });
-        return posts;
+    getAllPosts = async (page: number = 1, limit: number = 10) => {
+        const skip = (page - 1) * limit;
+
+        const { data, total } = await this.postRepository.findAllPostsWithUsers(skip, limit);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            posts: data,
+            pagination: {
+                totalItems: total,
+                currentPage: page,
+                totalPages: totalPages,
+                limit: limit
+            }
+        };
     };
 
     toggleLike = async (postId: string, userId: string) => {
         const updatedPost = await this.postRepository.toggleLike(postId, userId);
-        
+
         if (!updatedPost) {
             throw new NotFoundException("Post not found");
         }
@@ -51,6 +64,8 @@ class PostService {
 
         return null;
     };
+
+
 }
 
 export default new PostService();

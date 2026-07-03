@@ -31,6 +31,18 @@ class PostRepository extends BaseRepository<IPost> {
             );
         }
     }
+
+    async findAllPostsWithUsers(skip: number, limit: number) {
+        const data = await PostModel.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)     
+            .limit(limit)   
+            .populate('userId', 'firstName lastName profilePicture');
+
+        const total = await PostModel.countDocuments();
+
+        return { data, total };
+    }
 }
 
 export default PostRepository;

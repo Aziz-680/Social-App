@@ -67,15 +67,21 @@ postController.delete(
 // ==========================================
 postController.get(
     '/',
-    // Notice: No authenticate guard here!
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
         
-        const result = await postService.getAllPosts();
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        // 2. Pass them to the service
+        const result = await postService.getAllPosts(page, limit);
         
         return { 
             message: "Timeline fetched successfully", 
-            data: result, 
-            meta: { statusCode: 200 } 
+            data: result.posts, 
+            meta: { 
+                statusCode: 200,
+                pagination: result.pagination 
+            } 
         };
     })
 );
