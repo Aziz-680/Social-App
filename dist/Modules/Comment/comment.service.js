@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const comment_repo_1 = __importDefault(require("../../DB/Repos/comment.repo"));
+const exceptions_1 = require("../../Common/Utils/Errors/exceptions");
 class CommentService {
     constructor(commentRepository = new comment_repo_1.default()) {
         this.commentRepository = commentRepository;
@@ -27,6 +28,19 @@ class CommentService {
             // Sort by oldest first so comments read naturally top-to-bottom
             const comments = yield this.commentRepository.findDocuments({ postId }, { sort: { createdAt: 1 } });
             return comments;
+        });
+        // Inside comment.service.ts
+        this.deleteComment = (commentId, userId) => __awaiter(this, void 0, void 0, function* () {
+            const comment = yield this.commentRepository.findDocumentById(commentId);
+            if (!comment) {
+                throw new exceptions_1.NotFoundException("Comment not found");
+            }
+            // 🛡️ The exact same Authorization check!
+            if (comment.userId.toString() !== userId) {
+                throw new exceptions_1.ForbiddenException("You are not authorized to delete someone else's comment");
+            }
+            yield this.commentRepository.deleteDocument(commentId);
+            return null;
         });
     }
 }

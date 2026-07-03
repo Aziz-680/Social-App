@@ -32,17 +32,45 @@ postController.post('/', Middlewares_1.authenticate, // 1. Guard checks the toke
         meta: { statusCode: 201 }
     };
 })));
+postController.put('/:id/like', Middlewares_1.authenticate, // 1. Must be logged in
+(0, validation_middleware_1.default)(post_validators_1.LikePostSchema), // 2. Ensure :id parameter is a valid MongoDB ID
+(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    // Normalize the postId param and pass the userId from the token
+    const postId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const result = yield post_service_1.default.toggleLike(postId, req.user._id);
+    return {
+        message: "Post like toggled successfully",
+        data: result,
+        meta: { statusCode: 200 }
+    };
+})));
+postController.delete('/:id', Middlewares_1.authenticate, // 1. Guard checks IF they are logged in
+(0, validation_middleware_1.default)(post_validators_1.DeletePostSchema), // 2. Zod checks the ID format
+(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    // Normalize the postId param and pass the userId from the token to the service
+    const postId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    yield post_service_1.default.deletePost(postId, req.user._id);
+    return {
+        message: "Post deleted successfully",
+        data: null,
+        meta: { statusCode: 200 }
+    };
+})));
 // ==========================================
 // 🌍 PUBLIC ROUTE: GET ALL POSTS
 // ==========================================
-postController.get('/', 
-// Notice: No authenticate guard here!
-(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield post_service_1.default.getAllPosts();
+postController.get('/', (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    // 2. Pass them to the service
+    const result = yield post_service_1.default.getAllPosts(page, limit);
     return {
         message: "Timeline fetched successfully",
-        data: result,
-        meta: { statusCode: 200 }
+        data: result.posts,
+        meta: {
+            statusCode: 200,
+            pagination: result.pagination
+        }
     };
 })));
 exports.default = postController;
