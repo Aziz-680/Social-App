@@ -55,6 +55,8 @@ app.listen(port, () => {
 // Option B: The Follow System. We can build a feature where Users can Follow/Unfollow each other, and then create a new GET /api/post/feed route that only shows posts from people you follow, instead of a global timeline.
 
 // Option C: Real File Uploads. Right now, your users are just pasting image URLs. We could integrate Multer and a cloud storage service like Cloudinary so users can actually upload image files straight from their phones/computers.
+// npm install multer cloudinary multer-storage-cloudinary
+// npm install @types/multer --save-dev
 
 // Part 2: When should we deploy?
 // You can deploy right now. In modern software development, we practice something called "Continuous Deployment." You don't have to wait until every single feature is finished to put it online! Deploying now means you (or your frontend developer) can start building the mobile app or website using a live URL instead of localhost.

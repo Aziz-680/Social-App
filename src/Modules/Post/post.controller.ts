@@ -3,6 +3,7 @@ import postService from "./post.service";
 import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewares";
 import validation from "../../Middlewares/validation.middleware";
 import { CreatePostSchema, LikePostSchema , DeletePostSchema} from "../../Validators/post.validators";
+import { upload } from "../../Middlewares/upload.middleware";
 
 const postController = Router();
 
@@ -12,6 +13,26 @@ const postController = Router();
 postController.post(
     '/',
     authenticate, // 1. Guard checks the token and gets the User ID
+
+    upload.single('image'), // 🚀 1. Multer intercepts the file named 'image'
+    // validation(CreatePostSchema), // (Optional: You may need to tweak Zod since 'media' is no longer in the JSON body)
+    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+        
+        // 2. Build the post data. If they uploaded a file, use the Cloudinary URL!
+        const postData = {
+            content: req.body.content,
+            media: req.file ? [req.file.path] : [] // req.file.path is the magical Cloudinary URL!
+        };
+
+        const result = await postService.createPost(req.user._id, postData);
+        
+        return { 
+            message: "Post created successfully", 
+            data: result, 
+            meta: { statusCode: 201 } 
+        };
+    }),
+    
     validation(CreatePostSchema), // 2. Zod checks the post content
     responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
         
