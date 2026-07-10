@@ -17,12 +17,30 @@ const post_service_1 = __importDefault(require("./post.service"));
 const Middlewares_1 = require("../../Middlewares");
 const validation_middleware_1 = __importDefault(require("../../Middlewares/validation.middleware"));
 const post_validators_1 = require("../../Validators/post.validators");
+const upload_middleware_1 = require("../../Middlewares/upload.middleware");
 const postController = (0, express_1.Router)();
 // ==========================================
 // 🛡️ PROTECTED ROUTE: CREATE A POST
 // ==========================================
-postController.post('/', Middlewares_1.authenticate, // 1. Guard checks the token and gets the User ID
-(0, validation_middleware_1.default)(post_validators_1.CreatePostSchema), // 2. Zod checks the post content
+postController.post('/', Middlewares_1.authenticate, // 1. Guard checks the token and gets the User I
+upload_middleware_1.upload.single('image'), //  1. Multer intercepts the file named 'image'
+// validation(CreatePostSchema), // (Optional: You may need to tweak Zod since 'media' is no longer in the JSON body)
+(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    // 🔰
+    console.log("BODY DATA:", req.body);
+    console.log("FILE DATA:", req.file);
+    // 2. Build the post data. If they uploaded a file, use the Cloudinary URL!
+    const postData = {
+        content: req.body.content,
+        media: req.file ? [req.file.path] : [] // req.file.path is the magical Cloudinary URL!
+    };
+    const result = yield post_service_1.default.createPost(req.user._id, postData);
+    return {
+        message: "Post created successfully",
+        data: result,
+        meta: { statusCode: 201 }
+    };
+})), (0, validation_middleware_1.default)(post_validators_1.CreatePostSchema), // 2. Zod checks the post content
 (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // Pass the securely extracted user ID and the validated body to the service
     const result = yield post_service_1.default.createPost(req.user._id, req.body);

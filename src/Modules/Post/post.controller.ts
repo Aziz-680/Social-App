@@ -12,12 +12,17 @@ const postController = Router();
 // ==========================================
 postController.post(
     '/',
-    authenticate, // 1. Guard checks the token and gets the User ID
+    authenticate, // 1. Guard checks the token and gets the User I
 
-    upload.single('image'), // 🚀 1. Multer intercepts the file named 'image'
+    upload.single('image'), //  1. Multer intercepts the file named 'image'
+    
     // validation(CreatePostSchema), // (Optional: You may need to tweak Zod since 'media' is no longer in the JSON body)
     responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        
+
+        // 🔰
+        console.log("BODY DATA:", req.body);
+        console.log("FILE DATA:", req.file);
+
         // 2. Build the post data. If they uploaded a file, use the Cloudinary URL!
         const postData = {
             content: req.body.content,
