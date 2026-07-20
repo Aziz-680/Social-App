@@ -20,16 +20,22 @@ const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         // 2. Extract the Authorization header
         const authHeader = req.headers.authorization;
         // 3. Check if the header exists and follows the "Bearer <token>" format
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             throw new exceptions_1.UnauthorizedException("Access denied. No token provided.");
         }
         // 4. Split the string to get just the token part
-        const token = authHeader.split(' ')[1];
+        const token = authHeader.split(" ")[1];
         // 5. Decode and verify the token using your TokenService
-        const decodedPayload = yield token_service_1.default.decodeToken({ token, tokenType: 'ACCESS' });
+        const decodedPayload = yield token_service_1.default.decodeToken({
+            token,
+            tokenType: "ACCESS",
+        });
         // 6. Attach the decoded payload (which has the _id) to the request object
-        req.user = decodedPayload.user;
-        req.decodedData = decodedPayload.decodedData;
+        // req.user = decodedPayload.user;
+        // req.decodedData = decodedPayload.decodedData;
+        const authenticatedRequest = req;
+        authenticatedRequest.user = decodedPayload.user;
+        authenticatedRequest.decodedData = decodedPayload.decodedData;
         next();
     }
     catch (error) {

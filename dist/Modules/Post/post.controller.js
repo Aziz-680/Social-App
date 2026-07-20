@@ -22,28 +22,13 @@ const postController = (0, express_1.Router)();
 // ==========================================
 // 🛡️ PROTECTED ROUTE: CREATE A POST
 // ==========================================
-postController.post('/', Middlewares_1.authenticate, // 1. Guard checks the token and gets the User I
-upload_middleware_1.upload.single('image'), //  1. Multer intercepts the file named 'image'
-// validation(CreatePostSchema), // (Optional: You may need to tweak Zod since 'media' is no longer in the JSON body)
-(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // 🔰
-    console.log("BODY DATA:", req.body);
-    console.log("FILE DATA:", req.file);
-    // 2. Build the post data. If they uploaded a file, use the Cloudinary URL!
+postController.post('/imgupld', Middlewares_1.authenticate, upload_middleware_1.upload.single('image'), (0, validation_middleware_1.default)(post_validators_1.CreatePostSchema), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const postData = {
         content: req.body.content,
-        media: req.file ? [req.file.path] : [] // req.file.path is the magical Cloudinary URL!
+        media: req.file ? [req.file.path] : []
     };
-    const result = yield post_service_1.default.createPost(req.user._id, postData);
-    return {
-        message: "Post created successfully",
-        data: result,
-        meta: { statusCode: 201 }
-    };
-})), (0, validation_middleware_1.default)(post_validators_1.CreatePostSchema), // 2. Zod checks the post content
-(0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // Pass the securely extracted user ID and the validated body to the service
-    const result = yield post_service_1.default.createPost(req.user._id, req.body);
+    const _id = req.user._id;
+    const result = yield post_service_1.default.createPost(_id, postData);
     return {
         message: "Post created successfully",
         data: result,

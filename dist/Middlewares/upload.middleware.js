@@ -22,17 +22,18 @@ dotenv_1.default.config();
 cloudinary_1.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 // 2. Tell Multer to send files straight to Cloudinary
 const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
     cloudinary: cloudinary_1.v2,
     params: (req, file) => __awaiter(void 0, void 0, void 0, function* () {
         return {
-            folder: 'social-app-posts', // Cloudinary will create this folder for you!
-            allowed_formats: ['jpg', 'jpeg', 'png', 'webp'], // Block PDFs or malicious files
+            folder: "social-app-posts", // Cloudinary will create this folder for you!
+            allowed_formats: ["jpg", "jpeg", "png", "webp"], // Block PDFs or malicious files
         };
     }),
 });
 // 3. Export the middleware so we can use it in our routes
-exports.upload = (0, multer_1.default)({ storage: storage });
+const multerStorage = multer_1.default.diskStorage({});
+exports.upload = (0, multer_1.default)({ storage: multerStorage });

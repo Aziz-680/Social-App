@@ -11,25 +11,20 @@ const postController = Router();
 // 🛡️ PROTECTED ROUTE: CREATE A POST
 // ==========================================
 postController.post(
-    '/',
-    authenticate, // 1. Guard checks the token and gets the User I
+    '/imgupld',
+    authenticate, 
 
-    upload.single('image'), //  1. Multer intercepts the file named 'image'
+    upload.single('image'),
     
-    // validation(CreatePostSchema), // (Optional: You may need to tweak Zod since 'media' is no longer in the JSON body)
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+    validation(CreatePostSchema),
+    responseFormatter (async (req: Request, res: Response, next: NextFunction) => {
 
-        // 🔰
-        console.log("BODY DATA:", req.body);
-        console.log("FILE DATA:", req.file);
-
-        // 2. Build the post data. If they uploaded a file, use the Cloudinary URL!
         const postData = {
             content: req.body.content,
-            media: req.file ? [req.file.path] : [] // req.file.path is the magical Cloudinary URL!
+            media: req.file ? [req.file.path] : []
         };
-
-        const result = await postService.createPost(req.user._id, postData);
+        const _id = (req as ISecureRequest).user._id;
+        const result = await postService.createPost(_id, postData);
         
         return { 
             message: "Post created successfully", 
@@ -37,19 +32,7 @@ postController.post(
             meta: { statusCode: 201 } 
         };
     }),
-    
-    validation(CreatePostSchema), // 2. Zod checks the post content
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        
-        // Pass the securely extracted user ID and the validated body to the service
-        const result = await postService.createPost(req.user._id, req.body);
-        
-        return { 
-            message: "Post created successfully", 
-            data: result, 
-            meta: { statusCode: 201 } 
-        };
-    })
+
 );
 
 postController.put(
