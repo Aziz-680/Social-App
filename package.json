@@ -13,12 +13,14 @@
   "license": "ISC",
   "dependencies": {
     "argon2": "^0.44.0",
-    "cloudinary": "^1.41.3",
+    "cloudinary": "^2.10.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-auth-library": "^10.9.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.23.1",
+    "mongodb": "^7.5.0",
+    "mongoose": "^8.24.3",
     "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemon": "^3.1.14",
@@ -28,6 +30,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
-    "@types/node": "^25.9.1"
+    "@types/node": "^25.9.1",
+    "typescript": "^7.0.2"
   }
 }

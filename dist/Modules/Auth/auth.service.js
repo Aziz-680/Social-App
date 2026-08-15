@@ -16,10 +16,11 @@ const user_repo_1 = __importDefault(require("../../DB/Repos/user.repo"));
 const security_service_1 = __importDefault(require("../../Common/Services/security.service"));
 const token_service_1 = __importDefault(require("../../Common/Services/token.service"));
 const Utils_1 = require("../../Common/Utils");
+const google_auth_library_1 = require("google-auth-library");
+const googleClient = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 class AuthService {
     constructor(userRepository = new user_repo_1.default()) {
         this.userRepository = userRepository;
-        // Replaced 'any' with RegisterBodyType
         this.registerUser = (userData) => __awaiter(this, void 0, void 0, function* () {
             // 1. Check if the user already exists by email
             const existingUser = yield this.userRepository.findOneDocument({ email: userData.email });
@@ -34,8 +35,7 @@ class AuthService {
                 encryptedPhone = security_service_1.default.encrypt(userData.phoneNumber);
             }
             // 4. Prepare the final secure data object
-            const secureUserData = Object.assign(Object.assign(Object.assign({}, userData), { password: hashedPassword }), (encryptedPhone && { phoneNumber: encryptedPhone }) // Only attach if it exists
-            );
+            const secureUserData = Object.assign(Object.assign(Object.assign({}, userData), { password: hashedPassword }), (encryptedPhone && { phoneNumber: encryptedPhone }));
             // 5. Save to the database 
             const newUser = yield this.userRepository.createDocument(secureUserData);
             // 6. Strip out the password before sending the response back to the controller
@@ -43,7 +43,6 @@ class AuthService {
             delete userResponse.password;
             return userResponse;
         });
-        // Replaced 'any' with LoginBodyType
         this.loginUser = (loginData) => __awaiter(this, void 0, void 0, function* () {
             const { email, password } = loginData;
             // 1. Find user by email
@@ -64,6 +63,53 @@ class AuthService {
             // 4. Strip out the password hash before returning the object
             delete userResponse.password;
             // 5. Generate Access and Refresh Tokens
+            const tokens = token_service_1.default.createLoginToken({
+                payload: {
+                    _id: user._id.toString(),
+                    role: userResponse.role || 'USER'
+                }
+            });
+            return {
+                user: userResponse,
+                tokens
+            };
+        });
+        // ==========================================
+        // 🆕 GOOGLE LOGIN METHOD
+        // ==========================================
+        this.googleLogin = (googleToken) => __awaiter(this, void 0, void 0, function* () {
+            // 1. Verify the token with Google
+            const ticket = yield googleClient.verifyIdToken({
+                idToken: googleToken,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email) {
+                throw new Utils_1.BadRequestException("Invalid Google Token");
+            }
+            const { email, given_name, family_name, picture } = payload;
+            // 2. Check if the user already exists in your MongoDB
+            let user = yield this.userRepository.findOneDocument({ email });
+            // 3. If they don't exist, create a new account for them instantly
+            if (!user) {
+                // Generate a random string to satisfy the database password requirement and hash it
+                const randomPassword = Math.random().toString(36).slice(-10);
+                const hashedPassword = yield security_service_1.default.hashPassword(randomPassword);
+                user = yield this.userRepository.createDocument({
+                    firstName: given_name || "Google",
+                    lastName: family_name || "User",
+                    email: email,
+                    password: hashedPassword,
+                    profilePicture: picture
+                });
+            }
+            // 4. Format the user response (decrypt phone if it somehow exists)
+            const userResponse = user.toObject();
+            delete userResponse.password;
+            if (userResponse.phoneNumber) {
+                userResponse.phoneNumber = security_service_1.default.decrypt(userResponse.phoneNumber);
+            }
+            // 5. Generate Access and Refresh Tokens using your custom TokenService
             const tokens = token_service_1.default.createLoginToken({
                 payload: {
                     _id: user._id.toString(),

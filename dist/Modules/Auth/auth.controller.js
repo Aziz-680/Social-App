@@ -20,7 +20,6 @@ const auth_validators_1 = require("../../Validators/auth.validators");
 const authController = (0, express_1.Router)();
 // Registration endpoint
 authController.post('/register', (0, validation_middleware_1.default)(auth_validators_1.RegisterSchema), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // Explicitly cast req.body to your Zod inferred type
     const result = yield auth_service_1.default.registerUser(req.body);
     return {
         message: "User registered successfully",
@@ -30,10 +29,25 @@ authController.post('/register', (0, validation_middleware_1.default)(auth_valid
 })));
 // Login endpoint
 authController.post('/login', (0, validation_middleware_1.default)(auth_validators_1.LoginSchema), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // Explicitly cast req.body to your Zod inferred type
     const result = yield auth_service_1.default.loginUser(req.body);
     return {
         message: "User logged in successfully",
+        data: result,
+        meta: { statusCode: 200 }
+    };
+})));
+// ==========================================
+// 🆕 GOOGLE LOGIN ENDPOINT
+// ==========================================
+authController.post('/google', (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { googleToken } = req.body;
+    if (!googleToken) {
+        res.status(400);
+        throw new Error("Google token is required");
+    }
+    const result = yield auth_service_1.default.googleLogin(googleToken);
+    return {
+        message: "Google login successful",
         data: result,
         meta: { statusCode: 200 }
     };

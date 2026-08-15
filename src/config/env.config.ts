@@ -1,7 +1,8 @@
 import { config } from "dotenv";
 
 config({
-    path:[ `.${process.env.NODE_ENV}.env` , '.env' ]
+    // path:[ `.${process.env.NODE_ENV}.env` , '.env' ]
+    path: '.dev.env'
 })
 
 const envConfig = {

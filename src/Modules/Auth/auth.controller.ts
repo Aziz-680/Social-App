@@ -12,7 +12,6 @@ authController.post(
     '/register', 
     validation(RegisterSchema), 
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
-        // Explicitly cast req.body to your Zod inferred type
         const result = await authService.registerUser(req.body as RegisterBodyType);
         
         return { 
@@ -28,11 +27,33 @@ authController.post(
     '/login', 
     validation(LoginSchema), 
     responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
-        // Explicitly cast req.body to your Zod inferred type
         const result = await authService.loginUser(req.body as LoginBodyType);
         
         return { 
             message: "User logged in successfully", 
+            data: result, 
+            meta: { statusCode: 200 } 
+        };
+    })
+);
+
+// ==========================================
+// 🆕 GOOGLE LOGIN ENDPOINT
+// ==========================================
+authController.post(
+    '/google', 
+    responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
+        const { googleToken } = req.body;
+
+        if (!googleToken) {
+            res.status(400);
+            throw new Error("Google token is required");
+        }
+
+        const result = await authService.googleLogin(googleToken);
+        
+        return { 
+            message: "Google login successful", 
             data: result, 
             meta: { statusCode: 200 } 
         };
