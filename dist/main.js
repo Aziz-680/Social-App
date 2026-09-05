@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const config_1 = require("./config");
 const Modules_1 = require("./Modules");
 const db_connection_js_1 = require("./DB/db.connection.js");
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 // function to handle all project controllers
 function initializeControllers(app) {
@@ -27,6 +28,7 @@ function initializeControllers(app) {
 // function to handle all common middlewares
 function initializeCommonMiddlewares(app) {
     app.use(express_1.default.json());
+    app.use((0, cors_1.default)());
 }
 initializeCommonMiddlewares(app);
 initializeControllers(app);

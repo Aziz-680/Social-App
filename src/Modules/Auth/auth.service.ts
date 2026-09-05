@@ -70,6 +70,8 @@ class AuthService {
         // 4. Strip out the password hash before returning the object
         delete userResponse.password;
 
+        await this.userRepository.updateDocument(user._id, { lastLogin: new Date() });
+
         // 5. Generate Access and Refresh Tokens
         const tokens = TokenService.createLoginToken({
             payload: { 

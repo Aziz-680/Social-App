@@ -59,7 +59,7 @@ const userSchema = new mongoose_1.Schema({
     phoneNumber: { type: String, required: false },
     // Enum fields
     role: { type: String, enum: Object.values(enums_1.USER_ROLES), default: enums_1.USER_ROLES.USER },
-    gender: { type: String, enum: Object.values(enums_1.GENDER), required: true },
+    gender: { type: String, enum: Object.values(enums_1.GENDER), required: false },
     status: { type: String, enum: Object.values(enums_1.STATUS), default: enums_1.STATUS.ACTIVE },
     provider: { type: String, enum: Object.values(enums_1.PROVIDERS), default: enums_1.PROVIDERS.SYSTEM },
     // Media & Booleans
@@ -69,7 +69,12 @@ const userSchema = new mongoose_1.Schema({
     googleSub: { type: String, required: false },
     // Nested Arrays
     OTPs: [OTPSchema],
-    workExperience: [WorkExperienceSchema]
+    workExperience: [WorkExperienceSchema],
+    // Friend System
+    friends: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
+    friendRequests: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
+    sentRequests: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'User' }],
+    lastLogin: { type: Date, required: false }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

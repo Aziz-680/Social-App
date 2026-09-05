@@ -36,6 +36,11 @@ export interface IUser extends Document {
     // Kept for Mongoose timestamps
     createdAt?: Date;
     updatedAt?: Date;
+    lastLogin?: Date;
+
+    friends: Types.ObjectId[];
+    friendRequests: Types.ObjectId[];
+    sentRequests: Types.ObjectId[];
 }
 
 
@@ -61,3 +66,4 @@ export interface IHttpAppError {
     code: string;
     details: unknown
 }
+

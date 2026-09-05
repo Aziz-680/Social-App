@@ -31,7 +31,7 @@ const userSchema = new Schema<IUser>({
     
     // Enum fields
     role: { type: String, enum: Object.values(USER_ROLES), default: USER_ROLES.USER },
-    gender: { type: String, enum: Object.values(GENDER), required: true },
+    gender: { type: String, enum: Object.values(GENDER), required: false },
     status: { type: String, enum: Object.values(STATUS), default: STATUS.ACTIVE },
     provider: { type: String, enum: Object.values(PROVIDERS), default: PROVIDERS.SYSTEM },
     
@@ -43,7 +43,14 @@ const userSchema = new Schema<IUser>({
 
     // Nested Arrays
     OTPs: [OTPSchema],
-    workExperience: [WorkExperienceSchema]
+    workExperience: [WorkExperienceSchema],
+
+    // Friend System
+    friends: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    friendRequests: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    sentRequests: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+
+    lastLogin: { type: Date, required: false }
 
 }, {
     timestamps: true,

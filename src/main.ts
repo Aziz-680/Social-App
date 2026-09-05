@@ -2,6 +2,7 @@ import express, { Application, NextFunction, Request, Response } from 'express'
 import { envConfig } from './config'
 import { authController, commentController, postController, userController } from './Modules'
 import { dbConnection } from './DB/db.connection.js'
+import cors from 'cors'; 
 
 const app: Application = express()
 
@@ -31,6 +32,7 @@ function initializeControllers(app: Application) {
 // function to handle all common middlewares
 function initializeCommonMiddlewares(app: Application) {
     app.use(express.json())
+    app.use(cors());
 }
 
 
