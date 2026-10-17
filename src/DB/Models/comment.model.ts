@@ -4,12 +4,12 @@ import { IComment } from '../../Common/Types/interface.types';
 const commentSchema = new Schema<IComment>({
     userId: {
         type: Schema.Types.ObjectId,
-        ref: 'User', //  connect comment author
+        ref: 'User',
         required: true
     },
     postId: {
         type: Schema.Types.ObjectId,
-        ref: 'Post', //  Links to the specific post
+        ref: 'Post',
         required: true
     },
     content: {

@@ -44,19 +44,37 @@ export interface IUser extends Document {
 }
 
 
-export interface IPost extends Document {
-    userId: Types.ObjectId; 
+
+export interface ICommentReaction {
+    userId: Types.ObjectId;
+    type: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry';
+}
+
+export interface IComment {
+    _id?: Types.ObjectId | string;
+    userId: Types.ObjectId;
+    postId?: Types.ObjectId;
     content: string;
-    media?: string[]; 
-    likes?: Types.ObjectId[]; 
+    reactions?: ICommentReaction[];
     createdAt?: Date;
     updatedAt?: Date;
 }
 
-export interface IComment extends Document {
+export interface IReaction {
+    userId: Types.ObjectId;
+    type: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry';
+}
+
+export interface IPost extends Document {
     userId: Types.ObjectId; 
-    postId: Types.ObjectId; 
     content: string;
+    media?: string[]; 
+    privacy?: 'public' | 'friends' | 'only_me';
+    likes?: Types.ObjectId[]; 
+    reactions?: IReaction[];
+    comments?: IComment[];
+    isRepost?: boolean;
+    originalPostId?: Types.ObjectId | null;
     createdAt?: Date;
     updatedAt?: Date;
 }

@@ -15,6 +15,11 @@ var STATUS;
 (function (STATUS) {
     STATUS["ACTIVE"] = "active";
     STATUS["INACTIVE"] = "inactive";
+    STATUS["AWAY"] = "away";
+    STATUS["BUSY"] = "busy";
+    STATUS["DO_NOT_DISTURB"] = "do not disturb";
+    STATUS["CHILLING"] = "chilling";
+    STATUS["OFFLINE"] = "offline";
 })(STATUS || (exports.STATUS = STATUS = {}));
 var PROVIDERS;
 (function (PROVIDERS) {

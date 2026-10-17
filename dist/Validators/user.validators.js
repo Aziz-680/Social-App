@@ -12,7 +12,9 @@ exports.UpdateUserSchema = {
         gender: zod_1.z.nativeEnum(enums_1.GENDER).optional(),
         profilePicture: zod_1.z.string().url("Profile picture must be a valid URL").optional(),
         coverPictures: zod_1.z.array(zod_1.z.string().url()).optional(),
-        // Complex nested array validation!
+        status: zod_1.z.nativeEnum(enums_1.STATUS, {
+            message: "Invalid status value provided"
+        }).optional(),
         workExperience: zod_1.z.array(zod_1.z.object({
             title: zod_1.z.string().min(2, "Title is required"),
             company: zod_1.z.string().min(2, "Company is required"),

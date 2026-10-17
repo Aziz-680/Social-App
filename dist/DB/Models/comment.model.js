@@ -37,12 +37,12 @@ const mongoose_1 = __importStar(require("mongoose"));
 const commentSchema = new mongoose_1.Schema({
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'User', //  connect comment author
+        ref: 'User',
         required: true
     },
     postId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Post', //  Links to the specific post
+        ref: 'Post',
         required: true
     },
     content: {

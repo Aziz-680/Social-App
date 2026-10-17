@@ -17,6 +17,7 @@ const express_1 = require("express");
 const user_service_1 = __importDefault(require("./user.service"));
 const Middlewares_1 = require("../../Middlewares");
 const auth_middleware_1 = require("../../Middlewares/auth.middleware");
+const upload_middleware_1 = require("../../Middlewares/upload.middleware");
 const validation_middleware_1 = __importDefault(require("../../Middlewares/validation.middleware"));
 const user_validators_1 = require("../../Validators/user.validators");
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
@@ -27,6 +28,18 @@ userController.get('/profile', auth_middleware_1.authenticate, (0, Middlewares_1
     return {
         message: "Profile fetched successfully",
         data: result,
+        meta: { statusCode: 200 }
+    };
+})));
+userController.post('/upload-avatar', auth_middleware_1.authenticate, upload_middleware_1.uploadProfile.single('profilePicture'), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!req.file) {
+        throw new Error("No image file provided.");
+    }
+    const imageUrl = req.file.path;
+    const updatedUser = yield user_model_1.default.findByIdAndUpdate(req.user._id, { profilePicture: imageUrl }, { new: true }).select('-password');
+    return {
+        message: "Profile picture updated successfully via Cloudinary",
+        data: updatedUser,
         meta: { statusCode: 200 }
     };
 })));

@@ -12,7 +12,6 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "exclude": [
-    "node_modules",
-    "social-frontend" 
+    "node_modules"
   ]
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GENDER } from "../Common/Types/enums"; // Adjust path if needed
+import { GENDER, STATUS } from "../Common/Types/enums"; // Adjust path if needed
 
 export const UpdateUserSchema = {
     body: z.object({
@@ -10,8 +10,9 @@ export const UpdateUserSchema = {
         gender: z.nativeEnum(GENDER as any).optional(),
         profilePicture: z.string().url("Profile picture must be a valid URL").optional(),
         coverPictures: z.array(z.string().url()).optional(),
-        
-        // Complex nested array validation!
+        status: z.nativeEnum(STATUS as any, {
+            message: "Invalid status value provided"
+        }).optional(),
         workExperience: z.array(
             z.object({
                 title: z.string().min(2, "Title is required"),

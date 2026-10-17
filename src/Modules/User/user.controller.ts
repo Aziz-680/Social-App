@@ -2,7 +2,7 @@ import { Router, Response, NextFunction, Request } from "express";
 import userService from "./user.service";
 import { responseFormatter } from "../../Middlewares";
 import { authenticate, ISecureRequest } from "../../Middlewares/auth.middleware"; 
-
+import { uploadProfile } from "../../Middlewares/upload.middleware";
 import validation from "../../Middlewares/validation.middleware";
 import { UpdateUserSchema } from "../../Validators/user.validators";
 
@@ -19,6 +19,31 @@ userController.get(
         return { 
             message: "Profile fetched successfully", 
             data: result, 
+            meta: { statusCode: 200 } 
+        };
+    })
+);
+
+userController.post(
+    '/upload-avatar',
+    authenticate,
+    uploadProfile.single('profilePicture'), 
+    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+        if (!req.file) {
+            throw new Error("No image file provided.");
+        }
+
+        const imageUrl = req.file.path;
+
+        const updatedUser = await UserModel.findByIdAndUpdate(
+            req.user._id, 
+            { profilePicture: imageUrl }, 
+            { new: true }
+        ).select('-password');
+
+        return { 
+            message: "Profile picture updated successfully via Cloudinary", 
+            data: updatedUser, 
             meta: { statusCode: 200 } 
         };
     })

@@ -11,7 +11,12 @@ export enum USER_ROLES {
 
 export enum STATUS {
     ACTIVE ='active',
-    INACTIVE = 'inactive'
+    INACTIVE = 'inactive',
+    AWAY = 'away',
+    BUSY = 'busy',
+    DO_NOT_DISTURB = 'do not disturb',
+    CHILLING = 'chilling',
+    OFFLINE = 'offline',
 }
 
 export enum PROVIDERS {

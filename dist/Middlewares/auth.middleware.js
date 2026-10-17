@@ -1,4 +1,12 @@
 "use strict";
+// import { Request, Response, NextFunction } from "express";
+// import TokenService from "../Common/Services/token.service";
+// import { UnauthorizedException } from "../Common/Utils/Errors/exceptions";
+// import UserModel from "../DB/Models/user.model";
+// export interface ISecureRequest extends Request {
+//   user?: any;
+//   decodedData?: any;
+// }
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -15,27 +23,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticate = void 0;
 const token_service_1 = __importDefault(require("../Common/Services/token.service"));
 const exceptions_1 = require("../Common/Utils/Errors/exceptions");
+const user_model_1 = __importDefault(require("../DB/Models/user.model")); // Add this import
 const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        // 2. Extract the Authorization header
-        const authHeader = req.headers.authorization;
-        // 3. Check if the header exists and follows the "Bearer <token>" format
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        let token = "";
+        if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
+        }
+        else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+            token = req.headers.authorization.split(" ")[1];
+        }
+        if (!token) {
             throw new exceptions_1.UnauthorizedException("Access denied. No token provided.");
         }
-        // 4. Split the string to get just the token part
-        const token = authHeader.split(" ")[1];
-        // 5. Decode and verify the token using your TokenService
         const decodedPayload = yield token_service_1.default.decodeToken({
             token,
             tokenType: "ACCESS",
         });
-        // 6. Attach the decoded payload (which has the _id) to the request object
-        // req.user = decodedPayload.user;
-        // req.decodedData = decodedPayload.decodedData;
+        // Extract the ID (Depends on how TokenService nests the payload)
+        const userId = (_a = decodedPayload.user) === null || _a === void 0 ? void 0 : _a._id;
+        // Fetch fresh user data, exclude password, and populate friends
+        const currentUser = yield user_model_1.default.findById(userId)
+            .select('-password') // This strictly prevents the password from being returned
+            .populate('friends', 'firstName lastName profilePicture'); // Fetches friend details
+        if (!currentUser) {
+            throw new exceptions_1.UnauthorizedException("User no longer exists.");
+        }
         const authenticatedRequest = req;
-        authenticatedRequest.user = decodedPayload.user;
-        authenticatedRequest.decodedData = decodedPayload.decodedData;
+        authenticatedRequest.user = currentUser;
+        authenticatedRequest.decodedData = decodedPayload.decodedData || decodedPayload;
         next();
     }
     catch (error) {

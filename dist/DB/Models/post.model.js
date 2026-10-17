@@ -34,25 +34,74 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const postSchema = new mongoose_1.Schema({
+// 1. Sub-schema for rich reactions (like, love, haha, etc.)
+const reactionSchema = new mongoose_1.Schema({
     userId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'User', // connect User model
+        ref: 'User',
+        required: true
+    },
+    type: {
+        type: String,
+        enum: ['like', 'love', 'haha', 'wow', 'sad', 'angry'],
+        default: 'like'
+    }
+}, {
+    _id: false
+});
+// 2. Sub-schema for individual comments (Must be declared BEFORE postSchema)
+const commentSchema = new mongoose_1.Schema({
+    userId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     content: {
         type: String,
-        required: [true, 'Post content is required'],
+        required: [true, 'Comment content cannot be empty'],
         trim: true,
-        maxlength: 2000
+        maxlength: 500
+    },
+    reactions: [reactionSchema]
+}, {
+    timestamps: true
+});
+// 3. Main Post Schema
+const postSchema = new mongoose_1.Schema({
+    userId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    content: {
+        type: String,
+        trim: true,
+        maxlength: 2000,
+        default: ""
     },
     media: [{
-            type: String // Optional array for image/video URLs
+            type: String
         }],
+    privacy: {
+        type: String,
+        enum: ['public', 'friends', 'only_me'],
+        default: 'public'
+    },
     likes: [{
             type: mongoose_1.Schema.Types.ObjectId,
-            ref: 'User' // Links to the users who liked the post
-        }]
+            ref: 'User'
+        }],
+    reactions: [reactionSchema],
+    comments: [commentSchema],
+    isRepost: {
+        type: Boolean,
+        default: false
+    },
+    originalPostId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Post',
+        default: null
+    }
 }, {
     timestamps: true
 });

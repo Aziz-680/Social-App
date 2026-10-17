@@ -12,28 +12,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.upload = void 0;
+exports.uploadPost = exports.uploadProfile = void 0;
 const cloudinary_1 = require("cloudinary");
 const multer_storage_cloudinary_1 = require("multer-storage-cloudinary");
 const multer_1 = __importDefault(require("multer"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-// 1. Give Cloudinary our credentials
 cloudinary_1.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-// 2. Tell Multer to send files straight to Cloudinary
-const storage = new multer_storage_cloudinary_1.CloudinaryStorage({
+// 1. Storage configuration for Profile Pictures
+const profileStorage = new multer_storage_cloudinary_1.CloudinaryStorage({
     cloudinary: cloudinary_1.v2,
     params: (req, file) => __awaiter(void 0, void 0, void 0, function* () {
         return {
-            folder: "social-app-posts", // Cloudinary will create this folder for you!
-            allowed_formats: ["jpg", "jpeg", "png", "webp"], // Block PDFs or malicious files
+            folder: "social-app-profiles", // Saves here
+            allowed_formats: ["jpg", "jpeg", "png", "webp"],
         };
     }),
 });
-// 3. Export the middleware so we can use it in our routes
-const multerStorage = multer_1.default.diskStorage({});
-exports.upload = (0, multer_1.default)({ storage: multerStorage });
+// 2. Storage configuration for Post Images
+const postStorage = new multer_storage_cloudinary_1.CloudinaryStorage({
+    cloudinary: cloudinary_1.v2,
+    params: (req, file) => __awaiter(void 0, void 0, void 0, function* () {
+        return {
+            folder: "social-app-posts", // Saves here
+            allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        };
+    }),
+});
+// 3. Export specific middlewares for your controllers to use
+exports.uploadProfile = (0, multer_1.default)({ storage: profileStorage });
+exports.uploadPost = (0, multer_1.default)({ storage: postStorage });
