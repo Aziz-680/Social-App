@@ -1,8 +1,8 @@
-import { Router, Response, Request, NextFunction } from "express";
-import commentService from "./comment.service";
+import { Router, Response } from "express";
 import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewares";
 import validation from "../../Middlewares/validation.middleware";
 import { CreateCommentSchema } from "../../Validators/comment.valiators";
+import postService from "../Post/post.service";
 
 const commentController = Router();
 
@@ -13,9 +13,13 @@ commentController.post(
     '/',
     authenticate, // You must be logged in to comment
     validation(CreateCommentSchema), // Checks the content & postId
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+    responseFormatter(async (req: ISecureRequest, res: Response) => {
 
-        const result = await commentService.createComment(req.user._id, req.body);
+        const result = await postService.addComment(
+            req.body.postId,
+            req.user._id.toString(),
+            req.body.content
+        );
 
         return {
             message: "Comment added successfully",
@@ -26,15 +30,14 @@ commentController.post(
 );
 
 // ==========================================
-// 🌍 PUBLIC ROUTE: GET COMMENTS FOR A POST
+// 🛡️ PROTECTED ROUTE: GET COMMENTS FOR A POST
 // ==========================================
 commentController.get(
     '/:postId',
-    // No guard here! Anyone can read comments.
-    responseFormatter(async (req: Request<{ postId: string }>, res: Response, next: NextFunction) => {
-
-        // Grab the postId from the URL parameters
-        const result = await commentService.getCommentsByPostId(req.params.postId);
+    authenticate,
+    responseFormatter(async (req: ISecureRequest, res: Response) => {
+        const postId = Array.isArray(req.params.postId) ? req.params.postId[0] : req.params.postId;
+        const result = await postService.getPostComments(postId, req.user._id.toString());
 
         return {
             message: "Comments fetched successfully",
