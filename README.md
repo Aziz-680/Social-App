@@ -126,8 +126,7 @@ All routes below require the access token in an `Authorization: Bearer YOUR_ACCE
 - `GET /api/post?page=1&limit=10` — Privacy-filtered feed.
 - `GET /api/post/user/:userId?page=1&limit=5` — Posts visible on a user's profile.
 - `GET /api/post/:id` — Fetch a post if its privacy allows access.
-- `POST /api/post` — Create a post using JSON `content`, `media` (URLs), and `privacy`.
-- `POST /api/post/imgupld` — Create a post with an uploaded `image`.
+- `POST /api/post` — Create a post using JSON or multipart `content`, `media` (URLs), and `privacy`; multipart uploads may include an `image` file.
 - `PUT /api/post/:id` — Edit `content` and/or `privacy` (owner only).
 - `DELETE /api/post/:id` — Delete a post (owner only).
 - `POST /api/post/:id/like` — Toggle a like.

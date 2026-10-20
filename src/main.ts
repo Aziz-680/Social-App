@@ -1,61 +1,64 @@
-import express, { Application, NextFunction, Request, Response } from 'express'
-import { envConfig } from './config'
-import { authController, commentController, postController, userController } from './Modules'
-import { dbConnection } from './DB/db.connection.js'
+import express, { Application, NextFunction, Request, Response } from 'express';
+import { envConfig } from './config';
+import { authController, commentController, postController, userController } from './Modules';
+import { dbConnection } from './DB/db.connection.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import path from 'path'; 
-import friendController from './Modules/Friends/friend.controller';
+import friendController from './Modules/Friend/friend.controller';
 
-const app: Application = express()
+const app: Application = express();
 
-
-// function to handle all project controllers
-function initializeControllers(app: Application) {
-    
+// 1. Initialize Common Middlewares First
+function initializeCommonMiddlewares(app: Application) {
+    app.use(express.json());
     app.use(cookieParser());
-    //project controllers
-    app.use('/api/auth', authController)
-    app.use('/api/user', userController)
-    app.use('/api/post', postController)
-    app.use('/api/comment', commentController)
-    app.use("/api/friend", friendController);
+    app.use(cors({
+        origin: 'http://localhost:3001',
+        credentials: true
+    }));
 
+    app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
+}
+
+// 2. Initialize Controllers
+function initializeControllers(app: Application) {
+    // Project controllers
+    app.use('/api/auth', authController);
+    app.use('/api/user', userController);
+    app.use('/api/post', postController);
+    app.use('/api/comment', commentController);
+    app.use('/api/friend', friendController);
 
     // Health check route
-    app.get('/', (_req: express.Request, res: express.Response) => {
+    app.get('/', (_req: Request, res: Response) => {
         res.json({ message: "Welcome to the Express + TypeScript Server!" });
     });
 
-    // 404 handler
-    app.use((_req: express.Request, res: express.Response) => {
-        res.status(404).json({ message: "Route not found" });
+    // Catch-all 404 handler for undefined routes
+    app.use((req: Request, res: Response) => {
+        res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
     });
 
+    // Global Error Handler Middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+        console.error("Unhandled Backend Error:", err);
+        const statusCode = err.statusCode || 500;
+        res.status(statusCode).json({
+            message: err.message || "Internal Server Error",
+            error: err
+        });
+    });
 }
 
-// function to handle all common middlewares
-function initializeCommonMiddlewares(app: Application) {
-    app.use(express.json())
-    app.use(cors({
-    origin: 'http://localhost:3001', 
-    credentials: true
-}));
+// Execute setup in correct order
+initializeCommonMiddlewares(app);
+initializeControllers(app);
 
-app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
-}
+// Database Connection
+dbConnection();
 
-
-initializeCommonMiddlewares(app)
-initializeControllers(app)
-
-// DataBase Connection
-dbConnection()
-
-const port: number | string = envConfig.app.port
+const port: number | string = envConfig.app.port;
 app.listen(port, () => {
-    console.log('Server is running on port', port)
-})
-
-
-
+    console.log('Server is running on port', port);
+});

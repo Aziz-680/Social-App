@@ -1,26 +1,23 @@
 import { Types } from "mongoose";
 import UserRepository from "../../DB/Repos/user.repo";
 import { BadRequestException, NotFoundException } from "../../Common/Utils";
-import { UpdateUserBodyType } from "../../Common/Types/type.types";
 import UserModel from "../../DB/Models/user.model";
+import { UpdateUserBodyType } from "../../Common/Types/type.types";
 
 class UserService {
     constructor(
         private userRepository: UserRepository = new UserRepository()
     ) { }
 
-    // 1. Fetch a single user by their ID
+    // 1. Fetch logged-in user profile directly via Mongoose model
     getUserProfile = async (userId: string) => {
-        const user = await this.userRepository.findDocumentById(userId as any);
+        const user = await UserModel.findById(userId).select("-password").exec();
 
         if (!user) {
             throw new NotFoundException("User not found");
         }
 
-        const userProfile = user.toObject();
-        delete userProfile.password;
-
-        return userProfile;
+        return user.toObject();
     }
 
     getPublicProfile = async (userId: string) => {
@@ -87,11 +84,9 @@ class UserService {
             throw new NotFoundException("User not found to update");
         }
 
-        const userProfile = updatedUser.toObject();
-        delete userProfile.password;
-
-        return userProfile;
+        return updatedUser.toObject();
     }
+
 }
 
 export default new UserService();

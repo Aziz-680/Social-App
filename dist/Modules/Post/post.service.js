@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const mongoose_1 = require("mongoose");
 const post_model_1 = __importDefault(require("../../DB/Models/post.model"));
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
 const post_repo_1 = __importDefault(require("../../DB/Repos/post.repo"));
@@ -23,9 +24,14 @@ class PostService {
         // 📝 POST CREATION & READ METHODS
         // ==========================================
         this.createPost = (userId, postData) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            if (!((_a = postData.content) === null || _a === void 0 ? void 0 : _a.trim()) && !((_b = postData.media) === null || _b === void 0 ? void 0 : _b.length)) {
+                throw new Utils_1.BadRequestException("A post must include text or media");
+            }
             const newPostData = Object.assign(Object.assign({}, postData), { userId });
             const post = yield this.postRepository.createDocument(newPostData);
-            return post;
+            return post_model_1.default.findById(post._id)
+                .populate("userId", "firstName lastName profilePicture");
         });
         this.getAllPosts = (...args_1) => __awaiter(this, [...args_1], void 0, function* (page = 1, limit = 10) {
             const skip = (page - 1) * limit;
@@ -41,15 +47,26 @@ class PostService {
                 },
             };
         });
-        this.getUserPosts = (userId_1, ...args_1) => __awaiter(this, [userId_1, ...args_1], void 0, function* (userId, page = 1, limit = 5) {
+        this.getUserPosts = (userId_1, viewerId_1, ...args_1) => __awaiter(this, [userId_1, viewerId_1, ...args_1], void 0, function* (userId, viewerId, page = 1, limit = 5) {
+            if (!mongoose_1.Types.ObjectId.isValid(userId))
+                throw new Utils_1.BadRequestException("Invalid user ID");
             const skip = (page - 1) * limit;
-            const query = { userId };
+            const profile = yield user_model_1.default.findById(userId).select("friends");
+            if (!profile)
+                throw new Utils_1.NotFoundException("User not found");
+            const isOwner = userId === viewerId;
+            const isFriend = profile.friends.some((friendId) => friendId.toString() === viewerId);
+            const privacyFilter = isOwner
+                ? {}
+                : { privacy: isFriend ? { $in: ["public", "friends"] } : "public" };
+            const query = Object.assign({ userId }, privacyFilter);
             const [posts, total] = yield Promise.all([
                 post_model_1.default.find(query)
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
                     .populate("userId", "firstName lastName profilePicture")
+                    .populate("likes", "firstName lastName profilePicture")
                     .populate("comments.userId", "firstName lastName profilePicture")
                     .populate({
                     path: "originalPostId",
@@ -63,9 +80,38 @@ class PostService {
                     totalItems: total,
                     currentPage: page,
                     totalPages: Math.ceil(total / limit),
-                    limit
-                }
+                    limit,
+                },
             };
+        });
+        this.getPost = (postId, viewerId) => __awaiter(this, void 0, void 0, function* () {
+            const post = yield post_model_1.default.findById(postId);
+            if (!post)
+                throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, viewerId);
+            yield post.populate("userId", "firstName lastName profilePicture");
+            yield post.populate("likes", "firstName lastName profilePicture");
+            yield post.populate("comments.userId", "firstName lastName profilePicture");
+            yield post.populate({
+                path: "originalPostId",
+                populate: { path: "userId", select: "firstName lastName profilePicture" }
+            });
+            return post;
+        });
+        this.getPostComments = (postId, viewerId) => __awaiter(this, void 0, void 0, function* () {
+            const post = yield this.getPost(postId, viewerId);
+            return post.comments;
+        });
+        this.assertCanViewPost = (post, viewerId) => __awaiter(this, void 0, void 0, function* () {
+            const authorId = post.userId.toString();
+            if (authorId === viewerId || post.privacy === "public")
+                return;
+            if (post.privacy === "friends") {
+                const author = yield user_model_1.default.findById(authorId).select("friends");
+                if (author === null || author === void 0 ? void 0 : author.friends.some((friendId) => friendId.toString() === viewerId))
+                    return;
+            }
+            throw new Utils_1.ForbiddenException("You are not authorized to view this post");
         });
         // Fetch Timeline: Public posts, own posts, or posts from friends with 'public' or 'friends' privacy
         this.getFeedPosts = (currentUserId_1, ...args_1) => __awaiter(this, [currentUserId_1, ...args_1], void 0, function* (currentUserId, page = 1, limit = 10) {
@@ -88,6 +134,7 @@ class PostService {
                     .skip(skip)
                     .limit(limit)
                     .populate("userId", "firstName lastName profilePicture")
+                    .populate("likes", "firstName lastName profilePicture")
                     .populate("comments.userId", "firstName lastName profilePicture")
                     .populate({
                     path: "originalPostId",
@@ -108,7 +155,7 @@ class PostService {
         // ==========================================
         // ✏️ POST UPDATE & DELETE METHODS
         // ==========================================
-        this.updatePost = (postId, userId, content) => __awaiter(this, void 0, void 0, function* () {
+        this.updatePost = (postId, userId, content, privacy) => __awaiter(this, void 0, void 0, function* () {
             const post = yield this.postRepository.findDocumentById(postId);
             if (!post) {
                 throw new Utils_1.NotFoundException("Post not found");
@@ -116,7 +163,7 @@ class PostService {
             if (post.userId.toString() !== userId.toString()) {
                 throw new Utils_1.ForbiddenException("You are not authorized to edit this post");
             }
-            const updatedPost = yield post_model_1.default.findByIdAndUpdate(postId, { content }, { new: true }).populate("userId", "firstName lastName profilePicture");
+            const updatedPost = yield post_model_1.default.findByIdAndUpdate(postId, Object.assign(Object.assign({}, (content !== undefined && { content })), (privacy !== undefined && { privacy })), { new: true }).populate("userId", "firstName lastName profilePicture");
             return updatedPost;
         });
         this.deletePost = (postId, userId) => __awaiter(this, void 0, void 0, function* () {
@@ -134,6 +181,10 @@ class PostService {
         // 👍 POST REACTIONS & REPOSTS
         // ==========================================
         this.toggleLike = (postId, userId) => __awaiter(this, void 0, void 0, function* () {
+            const post = yield post_model_1.default.findById(postId);
+            if (!post)
+                throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             const updatedPost = yield this.postRepository.toggleLike(postId, userId);
             if (!updatedPost) {
                 throw new Utils_1.NotFoundException("Post not found");
@@ -144,17 +195,21 @@ class PostService {
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             const existingReactionIndex = post.reactions.findIndex((r) => r.userId.toString() === userId.toString());
             if (existingReactionIndex > -1) {
                 if (post.reactions[existingReactionIndex].type === reactionType) {
                     post.reactions.splice(existingReactionIndex, 1);
+                    post.likes.pull(userId);
                 }
                 else {
                     post.reactions[existingReactionIndex].type = reactionType;
+                    post.likes.addToSet(userId);
                 }
             }
             else {
                 post.reactions.push({ userId: userId, type: reactionType });
+                post.likes.addToSet(userId);
             }
             yield post.save();
             return post_model_1.default.findById(postId)
@@ -165,13 +220,14 @@ class PostService {
             const originalPost = yield post_model_1.default.findById(postId);
             if (!originalPost)
                 throw new Utils_1.NotFoundException("Original post not found");
-            if (originalPost.privacy === 'only_me' && originalPost.userId.toString() !== userId) {
-                throw new Utils_1.ForbiddenException("Cannot repost private content");
+            yield this.assertCanViewPost(originalPost, userId);
+            if (originalPost.privacy !== "public") {
+                throw new Utils_1.ForbiddenException("Only public posts can be reposted");
             }
             const repost = yield post_model_1.default.create({
                 userId,
                 content: "",
-                privacy: "public",
+                privacy: originalPost.privacy,
                 isRepost: true,
                 originalPostId: originalPost._id
             });
@@ -184,6 +240,7 @@ class PostService {
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             post.comments.push({ userId: userId, content, createdAt: new Date() });
             yield post.save();
             return post_model_1.default.findById(postId)
@@ -194,6 +251,7 @@ class PostService {
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             const comment = post.comments.id(commentId);
             if (!comment)
                 throw new Utils_1.NotFoundException("Comment not found");
@@ -211,6 +269,7 @@ class PostService {
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             const comment = post.comments.id(commentId);
             if (!comment)
                 throw new Utils_1.NotFoundException("Comment not found");
@@ -230,6 +289,7 @@ class PostService {
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
+            yield this.assertCanViewPost(post, userId);
             const comment = post.comments.id(commentId);
             if (!comment)
                 throw new Utils_1.NotFoundException("Comment not found");

@@ -80,8 +80,8 @@ class PostService {
         totalItems: total,
         currentPage: page,
         totalPages: Math.ceil(total / limit),
-        limit
-      }
+        limit,
+      },
     };
   };
 

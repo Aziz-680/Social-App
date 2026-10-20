@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction, Request } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import userService from "./user.service";
 import { responseFormatter } from "../../Middlewares";
 import { authenticate, ISecureRequest } from "../../Middlewares/auth.middleware"; 
@@ -27,12 +27,27 @@ userController.get(
     })
 );
 
+// GET: Fetch public profile of another user by ID
+userController.get(
+    '/profile/:userId',
+    authenticate,
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+        const result = await userService.getPublicProfile(targetUserId);
+        return {
+            message: "Public profile fetched successfully",
+            data: result,
+            meta: { statusCode: 200 }
+        };
+    })
+);
+
 // GET: Fetch logged-in user's profile
 userController.get(
     '/profile', 
     authenticate, 
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        const result = await userService.getUserProfile(req.user._id);
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const result = await userService.getUserProfile(req.user._id.toString());
         return { 
             message: "Profile fetched successfully", 
             data: result, 
@@ -55,11 +70,12 @@ userController.get(
     })
 );
 
+// POST: Upload Avatar
 userController.post(
     '/upload-avatar',
     authenticate,
     uploadProfile.single('profilePicture'), 
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
         if (!req.file) {
             throw new Error("No image file provided.");
         }
@@ -83,10 +99,10 @@ userController.post(
 // PUT: Update logged-in user's profile
 userController.put(
     '/profile', 
-    authenticate, // 1. Check token
-    validation(UpdateUserSchema), // 2. Check data shape
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        const result = await userService.updateUserProfile(req.user._id, req.body);
+    authenticate,
+    validation(UpdateUserSchema),
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const result = await userService.updateUserProfile(req.user._id.toString(), req.body);
         return { 
             message: "User profile updated successfully", 
             data: result, 
@@ -94,6 +110,5 @@ userController.put(
         };
     })
 );
-
 
 export default userController;

@@ -14,6 +14,7 @@ export const CreatePostSchema = {
 export const UploadPostSchema = {
   body: z.object({
     content: z.string().max(2000, "Post is too long").optional(),
+    media: z.union([z.string().url(), z.array(z.string().url())]).optional(),
     privacy: z.enum(['public', 'friends', 'only_me']).optional(),
   }).strict()
 };
