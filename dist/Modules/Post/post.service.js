@@ -43,28 +43,24 @@ class PostService {
         });
         this.getUserPosts = (userId_1, ...args_1) => __awaiter(this, [userId_1, ...args_1], void 0, function* (userId, page = 1, limit = 5) {
             const skip = (page - 1) * limit;
-            const query = { userId };
             const [posts, total] = yield Promise.all([
-                post_model_1.default.find(query)
+                post_model_1.default.find({ userId })
+                    .populate("userId", "firstName lastName profilePicture")
+                    .populate("comments.userId", "firstName lastName profilePicture")
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("userId", "firstName lastName profilePicture")
-                    .populate("comments.userId", "firstName lastName profilePicture")
-                    .populate({
-                    path: "originalPostId",
-                    populate: { path: "userId", select: "firstName lastName profilePicture" }
-                }),
-                post_model_1.default.countDocuments(query)
+                    .exec(),
+                post_model_1.default.countDocuments({ userId }).exec(),
             ]);
             return {
                 posts,
                 pagination: {
-                    totalItems: total,
-                    currentPage: page,
+                    total,
+                    page,
+                    limit,
                     totalPages: Math.ceil(total / limit),
-                    limit
-                }
+                },
             };
         });
         // Fetch Timeline: Public posts, own posts, or posts from friends with 'public' or 'friends' privacy

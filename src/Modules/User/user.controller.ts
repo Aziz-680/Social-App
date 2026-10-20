@@ -1,4 +1,4 @@
-import { Router, Response, NextFunction, Request } from "express";
+import { Router, Response, NextFunction } from "express";
 import userService from "./user.service";
 import { responseFormatter } from "../../Middlewares";
 import { authenticate, ISecureRequest } from "../../Middlewares/auth.middleware"; 
@@ -10,12 +10,50 @@ import UserModel from '../../DB/Models/user.model';
 
 const userController = Router();
 
+// ==========================================
+// 1. DYNAMIC & SEARCH ROUTES (Must be defined first)
+// ==========================================
+
+// GET: Search users by query
+userController.get(
+    '/search',
+    authenticate,
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const q = (req.query.q as string) || "";
+        const result = await userService.searchUsers(req.user._id.toString(), q);
+        return { 
+            message: "Search results fetched", 
+            data: result, 
+            meta: { statusCode: 200 } 
+        };
+    })
+);
+
+// GET: Fetch public profile of another user by ID
+userController.get(
+    '/profile/:userId',
+    authenticate,
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+        const result = await userService.getPublicProfile(req.user._id.toString(), targetUserId);
+        return { 
+            message: "Public profile fetched successfully", 
+            data: result, 
+            meta: { statusCode: 200 } 
+        };
+    })
+);
+
+// ==========================================
+// 2. STATIC LOGGED-IN USER ROUTES
+// ==========================================
+
 // GET: Fetch logged-in user's profile
 userController.get(
     '/profile', 
     authenticate, 
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        const result = await userService.getUserProfile(req.user._id);
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const result = await userService.getUserProfile(req.user._id.toString());
         return { 
             message: "Profile fetched successfully", 
             data: result, 
@@ -24,11 +62,12 @@ userController.get(
     })
 );
 
+// POST: Upload Avatar
 userController.post(
     '/upload-avatar',
     authenticate,
     uploadProfile.single('profilePicture'), 
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
         if (!req.file) {
             throw new Error("No image file provided.");
         }
@@ -52,10 +91,10 @@ userController.post(
 // PUT: Update logged-in user's profile
 userController.put(
     '/profile', 
-    authenticate, // 1. Check token
-    validation(UpdateUserSchema), // 2. Check data shape
-    responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
-        const result = await userService.updateUserProfile(req.user._id, req.body);
+    authenticate, 
+    validation(UpdateUserSchema), 
+    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
+        const result = await userService.updateUserProfile(req.user._id.toString(), req.body);
         return { 
             message: "User profile updated successfully", 
             data: result, 
@@ -63,51 +102,5 @@ userController.put(
         };
     })
 );
-
-
-export const sendFriendRequest = async (req: ISecureRequest, res: Response): Promise<any> => {
-    try {
-        const senderId = req.user._id; // The person clicking "Add Friend"
-        const targetId = req.params.id; // The person receiving the request
-
-        // 1. Guardrail: Prevent adding yourself
-        if (senderId === targetId) {
-            return res.status(400).json({ message: "You cannot add yourself as a friend." });
-        }
-
-        const targetUser = await UserModel.findById(targetId);
-        const senderUser = await UserModel.findById(senderId);
-
-        if (!targetUser || !senderUser) {
-            return res.status(404).json({ message: "User not found." });
-        }
-
-        // 2. Guardrail: Check if they are already friends
-        if (targetUser.friends.includes(senderId as any)) {
-            return res.status(400).json({ message: "You are already friends." });
-        }
-
-        // 3. Guardrail: Check if a request is already pending
-        if (targetUser.friendRequests.includes(senderId as any)) {
-            return res.status(400).json({ message: "Friend request already sent." });
-        }
-
-        // 4. The Action: Update both arrays
-        targetUser.friendRequests.push(senderId as any);
-        senderUser.sentRequests.push(targetId as any);
-
-        // Save both documents at the exact same time
-        await Promise.all([targetUser.save(), senderUser.save()]);
-
-        return res.status(200).json({ message: "Friend request sent successfully!" });
-
-    } catch (error) {
-        return res.status(500).json({ message: "Internal server error", error });
-    }
-};
-
-userController.post('/friend-request/:id', authenticate, sendFriendRequest);
-
-
 
 export default userController;

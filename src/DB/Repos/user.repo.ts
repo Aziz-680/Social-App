@@ -7,6 +7,10 @@ class UserRepository extends BaseRepository<IUser> {
         super(UserModel);
     }
 
+    // Explicit override to guarantee execution and avoid abstract method errors
+    override findDocumentById = async (id: string | any): Promise<IUser | null> => {
+        return await UserModel.findById(id).exec();
+    }
 }
 
 export default UserRepository;

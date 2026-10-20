@@ -4,12 +4,17 @@ import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewar
 
 const friendController = Router();
 
+const parseId = (param: string | string[]): string => {
+  return Array.isArray(param) ? param[0] : param;
+};
+
 // Send Request
 friendController.post(
   "/request/:recipientId",
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
-    const result = await friendService.sendFriendRequest(req.user._id.toString(), String(req.params.recipientId));
+    const recipientId = parseId(req.params.recipientId);
+    const result = await friendService.sendFriendRequest(req.user._id.toString(), recipientId);
     return { message: result.message, data: null, meta: { statusCode: 200 } };
   })
 );
@@ -19,7 +24,8 @@ friendController.post(
   "/accept/:senderId",
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
-    const result = await friendService.acceptFriendRequest(req.user._id.toString(), String(req.params.senderId));
+    const senderId = parseId(req.params.senderId);
+    const result = await friendService.acceptFriendRequest(req.user._id.toString(), senderId);
     return { message: result.message, data: null, meta: { statusCode: 200 } };
   })
 );
@@ -29,7 +35,8 @@ friendController.post(
   "/reject/:senderId",
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
-    const result = await friendService.rejectFriendRequest(req.user._id.toString(), String(req.params.senderId));
+    const senderId = parseId(req.params.senderId);
+    const result = await friendService.rejectFriendRequest(req.user._id.toString(), senderId);
     return { message: result.message, data: null, meta: { statusCode: 200 } };
   })
 );
@@ -39,7 +46,8 @@ friendController.delete(
   "/:friendId",
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
-    const result = await friendService.unfriend(req.user._id.toString(), String(req.params.friendId));
+    const friendId = parseId(req.params.friendId);
+    const result = await friendService.unfriend(req.user._id.toString(), friendId);
     return { message: result.message, data: null, meta: { statusCode: 200 } };
   })
 );

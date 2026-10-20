@@ -41,32 +41,28 @@ class PostService {
     };
   };
 
-  getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
+getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
     const skip = (page - 1) * limit;
-    const query = { userId };
 
     const [posts, total] = await Promise.all([
-      PostModel.find(query)
+      PostModel.find({ userId })
+        .populate("userId", "firstName lastName profilePicture")
+        .populate("comments.userId", "firstName lastName profilePicture")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
-        .populate({
-          path: "originalPostId",
-          populate: { path: "userId", select: "firstName lastName profilePicture" }
-        }),
-      PostModel.countDocuments(query)
+        .exec(),
+      PostModel.countDocuments({ userId }).exec(),
     ]);
 
     return {
       posts,
       pagination: {
-        totalItems: total,
-        currentPage: page,
+        total,
+        page,
+        limit,
         totalPages: Math.ceil(total / limit),
-        limit
-      }
+      },
     };
   };
 

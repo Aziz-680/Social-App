@@ -8,16 +8,17 @@ import { uploadPost } from "../../Middlewares/upload.middleware";
 
 const postController = Router();
 
-// Helper function to safely extract single string ID from Express params
 const parseParamId = (param: string | string[]): string => {
   return Array.isArray(param) ? param[0] : param;
 };
 
 // ==========================================
-// 🌍 GET FEED (Public/Friends Privacy Filtered)
+// 1. SPECIFIC / NAMED ROUTES (MUST BE FIRST)
 // ==========================================
+
+// GET: /api/post/feed
 postController.get(
-  '/',
+  '/feed',
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
@@ -33,9 +34,7 @@ postController.get(
   })
 );
 
-// ==========================================
-// 👤 FETCH USER POSTS
-// ==========================================
+// GET: /api/post/user/:userId
 postController.get(
   '/user/:userId',
   authenticate,
@@ -59,14 +58,11 @@ postController.get(
   })
 );
 
-// ==========================================
-// 📝 CREATE A POST (IMAGE UPLOAD)
-// ==========================================
+// POST: /api/post (Create Post)
 postController.post(
-  '/imgupld', 
+  '/', 
   authenticate, 
   uploadPost.single('image'),
-  validation(CreatePostSchema),
   responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
     const postData = {
       content: req.body.content,
@@ -86,33 +82,29 @@ postController.post(
 );
 
 // ==========================================
-// 💬 COMMENT OPERATIONS (nested under /:id)
+// 2. PARAMETERIZED ROUTES (MUST BE LAST)
 // ==========================================
 
-// EDIT COMMENT (Comment Author Only)
+// EDIT COMMENT
 postController.put(
   '/:id/comment/:commentId',
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const commentId = parseParamId(req.params.commentId);
-    
     const result = await postService.updateComment(postId, commentId, req.user._id.toString(), req.body.content);
-
     return { message: "Comment updated", data: result, meta: { statusCode: 200 } };
   })
 );
 
-// DELETE COMMENT (Post Owner OR Comment Author)
+// DELETE COMMENT
 postController.delete(
   '/:id/comment/:commentId',
   authenticate,
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const commentId = parseParamId(req.params.commentId);
-    
     const result = await postService.deleteComment(postId, commentId, req.user._id.toString());
-
     return { message: "Comment deleted", data: result, meta: { statusCode: 200 } };
   })
 );
@@ -124,9 +116,7 @@ postController.post(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const commentId = parseParamId(req.params.commentId);
-    
     const result = await postService.reactToComment(postId, commentId, req.user._id.toString(), req.body.type);
-
     return { message: "Comment reaction updated", data: result, meta: { statusCode: 200 } };
   })
 );
@@ -139,18 +129,9 @@ postController.post(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const result = await postService.addComment(postId, req.user._id.toString(), req.body.content);
-
-    return {
-      message: "Comment added successfully",
-      data: result,
-      meta: { statusCode: 201 }
-    };
+    return { message: "Comment added successfully", data: result, meta: { statusCode: 201 } };
   })
 );
-
-// ==========================================
-// 👍 POST ACTIONS (REACTION, REPOST, EDIT, DELETE)
-// ==========================================
 
 // POST REACTION
 postController.post(
@@ -160,12 +141,7 @@ postController.post(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const result = await postService.addReaction(postId, req.user._id.toString(), req.body.type);
-
-    return {
-      message: "Reaction updated",
-      data: result,
-      meta: { statusCode: 200 }
-    };
+    return { message: "Reaction updated", data: result, meta: { statusCode: 200 } };
   })
 );
 
@@ -177,12 +153,7 @@ postController.post(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const result = await postService.repost(postId, req.user._id.toString());
-
-    return {
-      message: "Post shared to your profile",
-      data: result,
-      meta: { statusCode: 201 }
-    };
+    return { message: "Post shared to your profile", data: result, meta: { statusCode: 201 } };
   })
 );
 
@@ -194,12 +165,7 @@ postController.put(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     const result = await postService.updatePost(postId, req.user._id.toString(), req.body.content);
-
-    return {
-      message: "Post updated successfully",
-      data: result,
-      meta: { statusCode: 200 }
-    };
+    return { message: "Post updated successfully", data: result, meta: { statusCode: 200 } };
   })
 );
 
@@ -211,12 +177,7 @@ postController.delete(
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
     await postService.deletePost(postId, req.user._id.toString());
-
-    return {
-      message: "Post deleted successfully",
-      data: null,
-      meta: { statusCode: 200 }
-    };
+    return { message: "Post deleted successfully", data: null, meta: { statusCode: 200 } };
   })
 );
 

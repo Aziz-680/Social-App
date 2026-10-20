@@ -16,14 +16,19 @@ class FriendService {
     if (!recipient) throw new NotFoundException("User not found");
 
     // Check if already friends
-    if (sender?.friends.includes(recipientId as any)) {
+    const isAlreadyFriend = recipient.friends?.some(
+      (id: any) => id.toString() === senderId.toString()
+    );
+    if (isAlreadyFriend) {
       throw new BadRequestException("You are already friends with this user");
     }
 
     // Check if request already sent
-    const existingRequest = recipient.friendRequests?.find(
-      (req: any) => req.senderId.toString() === senderId
-    );
+    const existingRequest = recipient.friendRequests?.find((req: any) => {
+      const sId = req.senderId ? req.senderId.toString() : req.toString();
+      return sId === senderId.toString();
+    });
+
     if (existingRequest) {
       throw new BadRequestException("Friend request already pending");
     }
@@ -41,14 +46,18 @@ class FriendService {
 
     if (!user || !sender) throw new NotFoundException("User not found");
 
-    // Remove from request list
-    user.friendRequests = user.friendRequests.filter(
-      (req: any) => req.senderId.toString() !== senderId
-    );
+    // Remove from request list properly checking both object sub-doc and raw ID formats
+    user.friendRequests = user.friendRequests.filter((req: any) => {
+      const sId = req.senderId ? req.senderId.toString() : req.toString();
+      return sId !== senderId.toString();
+    });
 
     // Add to both friends lists if not present
-    if (!user.friends.includes(senderId as any)) user.friends.push(senderId as any);
-    if (!sender.friends.includes(userId as any)) sender.friends.push(userId as any);
+    const isUserFriend = user.friends?.some((f: any) => f.toString() === senderId.toString());
+    const isSenderFriend = sender.friends?.some((f: any) => f.toString() === userId.toString());
+
+    if (!isUserFriend) user.friends.push(senderId as any);
+    if (!isSenderFriend) sender.friends.push(userId as any);
 
     await Promise.all([user.save(), sender.save()]);
 
@@ -60,9 +69,11 @@ class FriendService {
     const user = await UserModel.findById(userId);
     if (!user) throw new NotFoundException("User not found");
 
-    user.friendRequests = user.friendRequests.filter(
-      (req: any) => req.senderId.toString() !== senderId
-    );
+    user.friendRequests = user.friendRequests.filter((req: any) => {
+      const sId = req.senderId ? req.senderId.toString() : req.toString();
+      return sId !== senderId.toString();
+    });
+
     await user.save();
 
     return { message: "Friend request removed" };
@@ -77,8 +88,8 @@ class FriendService {
 
     if (!user || !targetFriend) throw new NotFoundException("User not found");
 
-    user.friends = user.friends.filter((id: any) => id.toString() !== targetFriendId);
-    targetFriend.friends = targetFriend.friends.filter((id: any) => id.toString() !== userId);
+    user.friends = user.friends.filter((id: any) => id.toString() !== targetFriendId.toString());
+    targetFriend.friends = targetFriend.friends.filter((id: any) => id.toString() !== userId.toString());
 
     await Promise.all([user.save(), targetFriend.save()]);
 
@@ -93,7 +104,8 @@ class FriendService {
     );
     if (!user) throw new NotFoundException("User not found");
 
-    return user.friendRequests;
+    // Filter out invalid/null populates
+    return (user.friendRequests || []).filter((req: any) => req.senderId != null);
   };
 }
 
