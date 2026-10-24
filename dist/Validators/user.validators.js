@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateUserSchema = void 0;
+exports.SearchUsersSchema = exports.UpdateUserSchema = void 0;
 const zod_1 = require("zod");
 const enums_1 = require("../Common/Types/enums"); // Adjust path if needed
 exports.UpdateUserSchema = {
@@ -22,4 +22,11 @@ exports.UpdateUserSchema = {
             endDate: zod_1.z.string().datetime().optional()
         })).optional()
     }).strict() // .strict() prevents them from sending extra fields not defined above
+};
+exports.SearchUsersSchema = {
+    query: zod_1.z.object({
+        q: zod_1.z.string().trim().min(1).max(100),
+        page: zod_1.z.coerce.number().int().positive().optional().default(1),
+        limit: zod_1.z.coerce.number().int().positive().max(50).optional().default(20)
+    }).strict()
 };

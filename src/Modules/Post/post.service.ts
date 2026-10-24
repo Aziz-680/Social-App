@@ -1,8 +1,9 @@
+import { Types } from "mongoose";
 import PostModel from "../../DB/Models/post.model";
 import UserModel from "../../DB/Models/user.model";
 import PostRepository from "../../DB/Repos/post.repo";
 import { CreatePostBodyType } from "../../Common/Types/type.types";
-import { NotFoundException, ForbiddenException } from "../../Common/Utils";
+import { NotFoundException, ForbiddenException, BadRequestException } from "../../Common/Utils";
 
 class PostService {
   constructor(private postRepository: PostRepository = new PostRepository()) {}
@@ -11,13 +12,17 @@ class PostService {
   // 📝 POST CREATION & READ METHODS
   // ==========================================
   createPost = async (userId: string, postData: CreatePostBodyType) => {
+    if (!postData.content?.trim() && !postData.media?.length) {
+      throw new BadRequestException("A post must include text or media");
+    }
     const newPostData = {
       ...postData,
       userId,
     };
 
     const post = await this.postRepository.createDocument(newPostData);
-    return post;
+    return PostModel.findById(post._id)
+      .populate("userId", "firstName lastName profilePicture");
   };
 
   getAllPosts = async (page: number = 1, limit: number = 10) => {
@@ -41,29 +46,75 @@ class PostService {
     };
   };
 
-getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
+  getUserPosts = async (userId: string, viewerId: string, page: number = 1, limit: number = 5) => {
+    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException("Invalid user ID");
     const skip = (page - 1) * limit;
+    const profile = await UserModel.findById(userId).select("friends");
+    if (!profile) throw new NotFoundException("User not found");
+
+    const isOwner = userId === viewerId;
+    const isFriend = profile.friends.some((friendId: Types.ObjectId) => friendId.toString() === viewerId);
+    const privacyFilter = isOwner
+      ? {}
+      : { privacy: isFriend ? { $in: ["public", "friends"] } : "public" };
+    const query = { userId, ...privacyFilter };
 
     const [posts, total] = await Promise.all([
-      PostModel.find({ userId })
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
+      PostModel.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .exec(),
-      PostModel.countDocuments({ userId }).exec(),
+        .populate("userId", "firstName lastName profilePicture")
+        .populate("likes", "firstName lastName profilePicture")
+        .populate("comments.userId", "firstName lastName profilePicture")
+        .populate({
+          path: "originalPostId",
+          populate: { path: "userId", select: "firstName lastName profilePicture" }
+        }),
+      PostModel.countDocuments(query)
     ]);
 
     return {
       posts,
       pagination: {
-        total,
-        page,
-        limit,
+        totalItems: total,
+        currentPage: page,
         totalPages: Math.ceil(total / limit),
+        limit,
       },
     };
+  };
+
+  getPost = async (postId: string, viewerId: string) => {
+    const post = await PostModel.findById(postId);
+    if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, viewerId);
+    await post.populate("userId", "firstName lastName profilePicture");
+    await post.populate("likes", "firstName lastName profilePicture");
+    await post.populate("comments.userId", "firstName lastName profilePicture");
+    await post.populate({
+      path: "originalPostId",
+      populate: { path: "userId", select: "firstName lastName profilePicture" }
+    });
+    return post;
+  };
+
+  getPostComments = async (postId: string, viewerId: string) => {
+    const post = await this.getPost(postId, viewerId);
+    return post.comments;
+  };
+
+  private assertCanViewPost = async (
+    post: { userId: { toString(): string }; privacy?: string },
+    viewerId: string
+  ) => {
+    const authorId = post.userId.toString();
+    if (authorId === viewerId || post.privacy === "public") return;
+    if (post.privacy === "friends") {
+      const author = await UserModel.findById(authorId).select("friends");
+      if (author?.friends.some((friendId: Types.ObjectId) => friendId.toString() === viewerId)) return;
+    }
+    throw new ForbiddenException("You are not authorized to view this post");
   };
 
   // Fetch Timeline: Public posts, own posts, or posts from friends with 'public' or 'friends' privacy
@@ -90,6 +141,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
         .skip(skip)
         .limit(limit)
         .populate("userId", "firstName lastName profilePicture")
+        .populate("likes", "firstName lastName profilePicture")
         .populate("comments.userId", "firstName lastName profilePicture")
         .populate({
           path: "originalPostId",
@@ -112,7 +164,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   // ==========================================
   // ✏️ POST UPDATE & DELETE METHODS
   // ==========================================
-  updatePost = async (postId: string, userId: string, content: string) => {
+  updatePost = async (postId: string, userId: string, content?: string, privacy?: string) => {
     const post = await this.postRepository.findDocumentById(postId as any);
     if (!post) {
       throw new NotFoundException("Post not found");
@@ -124,7 +176,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
 
     const updatedPost = await PostModel.findByIdAndUpdate(
       postId,
-      { content },
+      { ...(content !== undefined && { content }), ...(privacy !== undefined && { privacy }) },
       { new: true }
     ).populate("userId", "firstName lastName profilePicture");
 
@@ -152,6 +204,9 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   // 👍 POST REACTIONS & REPOSTS
   // ==========================================
   toggleLike = async (postId: string, userId: string) => {
+    const post = await PostModel.findById(postId);
+    if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
     const updatedPost = await this.postRepository.toggleLike(postId, userId);
 
     if (!updatedPost) {
@@ -164,6 +219,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   addReaction = async (postId: string, userId: string, reactionType: string) => {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
 
     const existingReactionIndex = post.reactions.findIndex(
       (r: any) => r.userId.toString() === userId.toString()
@@ -172,11 +228,14 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
     if (existingReactionIndex > -1) {
       if (post.reactions[existingReactionIndex].type === reactionType) {
         post.reactions.splice(existingReactionIndex, 1);
+        post.likes.pull(userId as any);
       } else {
         post.reactions[existingReactionIndex].type = reactionType as any;
+        post.likes.addToSet(userId as any);
       }
     } else {
       post.reactions.push({ userId: userId as any, type: reactionType as any });
+      post.likes.addToSet(userId as any);
     }
 
     await post.save();
@@ -188,15 +247,15 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   repost = async (postId: string, userId: string) => {
     const originalPost = await PostModel.findById(postId);
     if (!originalPost) throw new NotFoundException("Original post not found");
-
-    if (originalPost.privacy === 'only_me' && originalPost.userId.toString() !== userId) {
-      throw new ForbiddenException("Cannot repost private content");
+    await this.assertCanViewPost(originalPost, userId);
+    if (originalPost.privacy !== "public") {
+      throw new ForbiddenException("Only public posts can be reposted");
     }
 
     const repost = await PostModel.create({
       userId,
       content: "",
-      privacy: "public",
+      privacy: originalPost.privacy,
       isRepost: true,
       originalPostId: originalPost._id
     });
@@ -210,6 +269,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   addComment = async (postId: string, userId: string, content: string) => {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
 
     post.comments.push({ userId: userId as any, content, createdAt: new Date() } as any);
     await post.save();
@@ -222,6 +282,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   updateComment = async (postId: string, commentId: string, userId: string, content: string) => {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
 
     const comment = post.comments.id(commentId) as any;
     if (!comment) throw new NotFoundException("Comment not found");
@@ -242,6 +303,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   deleteComment = async (postId: string, commentId: string, userId: string) => {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
 
     const comment = post.comments.id(commentId) as any;
     if (!comment) throw new NotFoundException("Comment not found");
@@ -265,6 +327,7 @@ getUserPosts = async (userId: string, page: number = 1, limit: number = 5) => {
   reactToComment = async (postId: string, commentId: string, userId: string, reactionType: string) => {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
+    await this.assertCanViewPost(post, userId);
 
     const comment = post.comments.id(commentId) as any;
     if (!comment) throw new NotFoundException("Comment not found");

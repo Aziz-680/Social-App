@@ -2,7 +2,7 @@ import { Router, Response, Request, NextFunction } from "express";
 import postService from "./post.service";
 import { responseFormatter, authenticate, ISecureRequest } from "../../Middlewares";
 import validation from "../../Middlewares/validation.middleware";
-import { CommentSchema, ReactionSchema, RepostSchema, CreatePostSchema, EditPostSchema, DeletePostSchema } from "../../Validators/post.validators";
+import { CommentSchema, ReactionSchema, RepostSchema, UploadPostSchema, EditPostSchema, DeletePostSchema, PostIdSchema } from "../../Validators/post.validators";
 import { BadRequestException } from "../../Common/Utils/Errors/exceptions";
 import { uploadPost } from "../../Middlewares/upload.middleware";
 
@@ -12,17 +12,21 @@ const parseParamId = (param: string | string[]): string => {
   return Array.isArray(param) ? param[0] : param;
 };
 
+const parsePagination = (query: Request["query"], defaultLimit: number) => {
+  const page = Number.parseInt(String(query.page), 10);
+  const limit = Number.parseInt(String(query.limit), 10);
+  return {
+    page: Number.isFinite(page) && page > 0 ? page : 1,
+    limit: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 50) : defaultLimit
+  };
+};
+
 // ==========================================
 // 1. SPECIFIC / NAMED ROUTES (MUST BE FIRST)
 // ==========================================
 
-// GET: /api/post/feed
-postController.get(
-  '/feed',
-  authenticate,
-  responseFormatter(async (req: ISecureRequest, res: Response) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+const feedHandler = responseFormatter(async (req: ISecureRequest, res: Response) => {
+    const { page, limit } = parsePagination(req.query, 10);
 
     const result = await postService.getFeedPosts(req.user._id.toString(), page, limit);
 
@@ -31,16 +35,18 @@ postController.get(
       data: result.posts,
       meta: { statusCode: 200, pagination: result.pagination }
     };
-  })
-);
+});
+
+// Keep both paths supported for existing clients.
+postController.get('/', authenticate, feedHandler);
+postController.get('/feed', authenticate, feedHandler);
 
 // GET: /api/post/user/:userId
 postController.get(
   '/user/:userId',
   authenticate,
-  responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 5;
+  responseFormatter(async (req: ISecureRequest, res: Response, next: NextFunction) => {
+    const { page, limit } = parsePagination(req.query, 5);
 
     const userId = parseParamId(req.params.userId);
 
@@ -48,7 +54,7 @@ postController.get(
       throw new BadRequestException("Invalid User ID");
     }
 
-    const result = await postService.getUserPosts(userId, page, limit);
+    const result = await postService.getUserPosts(userId, req.user._id.toString(), page, limit);
     
     return { 
       message: "User posts fetched successfully", 
@@ -60,23 +66,25 @@ postController.get(
 
 // POST: /api/post (Create Post)
 postController.post(
-  '/', 
-  authenticate, 
+  '/',
+  authenticate,
   uploadPost.single('image'),
-  responseFormatter(async (req: Request, res: Response, next: NextFunction) => {
+  validation(UploadPostSchema),
+  responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postData = {
       content: req.body.content,
-      media: req.file ? [(req.file as any).path] : [],
+      media: [
+        ...(Array.isArray(req.body.media) ? req.body.media : req.body.media ? [req.body.media] : []),
+        ...(req.file ? [(req.file as Express.Multer.File).path] : [])
+      ],
       privacy: req.body.privacy || 'public'
     };
-    const _id = (req as ISecureRequest).user._id.toString();
-    
-    const result = await postService.createPost(_id, postData as any);
-    
-    return { 
-      message: "Post created successfully", 
-      data: result, 
-      meta: { statusCode: 201 } 
+    const result = await postService.createPost(req.user._id.toString(), postData);
+
+    return {
+      message: "Post created successfully",
+      data: result,
+      meta: { statusCode: 201 }
     };
   })
 );
@@ -135,6 +143,30 @@ postController.post(
 
 // POST REACTION
 postController.post(
+  '/:id/like',
+  authenticate,
+  validation(PostIdSchema),
+  responseFormatter(async (req: ISecureRequest, res: Response) => {
+    const postId = parseParamId(req.params.id);
+    const result = await postService.addReaction(postId, req.user._id.toString(), 'like');
+    return { message: "Post like updated", data: result, meta: { statusCode: 200 } };
+  })
+);
+
+postController.get(
+  '/:id',
+  authenticate,
+  validation(PostIdSchema),
+  responseFormatter(async (req: ISecureRequest, res: Response) => {
+    const result = await postService.getPost(
+      parseParamId(req.params.id),
+      req.user._id.toString()
+    );
+    return { message: "Post fetched successfully", data: result, meta: { statusCode: 200 } };
+  })
+);
+
+postController.post(
   '/:id/react',
   authenticate,
   validation(ReactionSchema),
@@ -164,8 +196,18 @@ postController.put(
   validation(EditPostSchema),
   responseFormatter(async (req: ISecureRequest, res: Response) => {
     const postId = parseParamId(req.params.id);
-    const result = await postService.updatePost(postId, req.user._id.toString(), req.body.content);
-    return { message: "Post updated successfully", data: result, meta: { statusCode: 200 } };
+    const result = await postService.updatePost(
+      postId,
+      req.user._id.toString(),
+      req.body.content,
+      req.body.privacy
+    );
+
+    return {
+      message: "Post updated successfully",
+      data: result,
+      meta: { statusCode: 200 }
+    };
   })
 );
 

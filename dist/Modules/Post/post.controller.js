@@ -23,29 +23,37 @@ const postController = (0, express_1.Router)();
 const parseParamId = (param) => {
     return Array.isArray(param) ? param[0] : param;
 };
+const parsePagination = (query, defaultLimit) => {
+    const page = Number.parseInt(String(query.page), 10);
+    const limit = Number.parseInt(String(query.limit), 10);
+    return {
+        page: Number.isFinite(page) && page > 0 ? page : 1,
+        limit: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 50) : defaultLimit
+    };
+};
 // ==========================================
 // 1. SPECIFIC / NAMED ROUTES (MUST BE FIRST)
 // ==========================================
-// GET: /api/post/feed
-postController.get('/feed', Middlewares_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+const feedHandler = (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page, limit } = parsePagination(req.query, 10);
     const result = yield post_service_1.default.getFeedPosts(req.user._id.toString(), page, limit);
     return {
         message: "Feed posts fetched successfully",
         data: result.posts,
         meta: { statusCode: 200, pagination: result.pagination }
     };
-})));
+}));
+// Keep both paths supported for existing clients.
+postController.get('/', Middlewares_1.authenticate, feedHandler);
+postController.get('/feed', Middlewares_1.authenticate, feedHandler);
 // GET: /api/post/user/:userId
 postController.get('/user/:userId', Middlewares_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
+    const { page, limit } = parsePagination(req.query, 5);
     const userId = parseParamId(req.params.userId);
     if (!userId || userId === "undefined") {
         throw new exceptions_1.BadRequestException("Invalid User ID");
     }
-    const result = yield post_service_1.default.getUserPosts(userId, page, limit);
+    const result = yield post_service_1.default.getUserPosts(userId, req.user._id.toString(), page, limit);
     return {
         message: "User posts fetched successfully",
         data: result.posts,
@@ -53,14 +61,16 @@ postController.get('/user/:userId', Middlewares_1.authenticate, (0, Middlewares_
     };
 })));
 // POST: /api/post (Create Post)
-postController.post('/', Middlewares_1.authenticate, upload_middleware_1.uploadPost.single('image'), (0, Middlewares_1.responseFormatter)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+postController.post('/', Middlewares_1.authenticate, upload_middleware_1.uploadPost.single('image'), (0, validation_middleware_1.default)(post_validators_1.UploadPostSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const postData = {
         content: req.body.content,
-        media: req.file ? [req.file.path] : [],
+        media: [
+            ...(Array.isArray(req.body.media) ? req.body.media : req.body.media ? [req.body.media] : []),
+            ...(req.file ? [req.file.path] : [])
+        ],
         privacy: req.body.privacy || 'public'
     };
-    const _id = req.user._id.toString();
-    const result = yield post_service_1.default.createPost(_id, postData);
+    const result = yield post_service_1.default.createPost(req.user._id.toString(), postData);
     return {
         message: "Post created successfully",
         data: result,
@@ -98,6 +108,15 @@ postController.post('/:id/comment', Middlewares_1.authenticate, (0, validation_m
     return { message: "Comment added successfully", data: result, meta: { statusCode: 201 } };
 })));
 // POST REACTION
+postController.post('/:id/like', Middlewares_1.authenticate, (0, validation_middleware_1.default)(post_validators_1.PostIdSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const postId = parseParamId(req.params.id);
+    const result = yield post_service_1.default.addReaction(postId, req.user._id.toString(), 'like');
+    return { message: "Post like updated", data: result, meta: { statusCode: 200 } };
+})));
+postController.get('/:id', Middlewares_1.authenticate, (0, validation_middleware_1.default)(post_validators_1.PostIdSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield post_service_1.default.getPost(parseParamId(req.params.id), req.user._id.toString());
+    return { message: "Post fetched successfully", data: result, meta: { statusCode: 200 } };
+})));
 postController.post('/:id/react', Middlewares_1.authenticate, (0, validation_middleware_1.default)(post_validators_1.ReactionSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const postId = parseParamId(req.params.id);
     const result = yield post_service_1.default.addReaction(postId, req.user._id.toString(), req.body.type);
@@ -112,8 +131,12 @@ postController.post('/:id/repost', Middlewares_1.authenticate, (0, validation_mi
 // EDIT POST
 postController.put('/:id', Middlewares_1.authenticate, (0, validation_middleware_1.default)(post_validators_1.EditPostSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const postId = parseParamId(req.params.id);
-    const result = yield post_service_1.default.updatePost(postId, req.user._id.toString(), req.body.content);
-    return { message: "Post updated successfully", data: result, meta: { statusCode: 200 } };
+    const result = yield post_service_1.default.updatePost(postId, req.user._id.toString(), req.body.content, req.body.privacy);
+    return {
+        message: "Post updated successfully",
+        data: result,
+        meta: { statusCode: 200 }
+    };
 })));
 // DELETE POST
 postController.delete('/:id', Middlewares_1.authenticate, (0, validation_middleware_1.default)(post_validators_1.DeletePostSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {

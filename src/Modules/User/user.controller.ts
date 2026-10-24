@@ -1,30 +1,28 @@
-import { Router, Response, NextFunction } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import userService from "./user.service";
 import { responseFormatter } from "../../Middlewares";
 import { authenticate, ISecureRequest } from "../../Middlewares/auth.middleware"; 
 import { uploadProfile } from "../../Middlewares/upload.middleware";
 import validation from "../../Middlewares/validation.middleware";
-import { UpdateUserSchema } from "../../Validators/user.validators";
+import { SearchUsersSchema, UpdateUserSchema } from "../../Validators/user.validators";
 
 import UserModel from '../../DB/Models/user.model'; 
 
 const userController = Router();
 
-// ==========================================
-// 1. DYNAMIC & SEARCH ROUTES (Must be defined first)
-// ==========================================
-
-// GET: Search users by query
 userController.get(
     '/search',
     authenticate,
-    responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
-        const q = (req.query.q as string) || "";
-        const result = await userService.searchUsers(req.user._id.toString(), q);
-        return { 
-            message: "Search results fetched", 
-            data: result, 
-            meta: { statusCode: 200 } 
+    validation(SearchUsersSchema),
+    responseFormatter(async (req: ISecureRequest, res: Response) => {
+        const q = String(req.query.q);
+        const page = Number(req.query.page ?? 1);
+        const limit = Number(req.query.limit ?? 20);
+        const result = await userService.searchUsers(q, req.user._id.toString(), page, limit);
+        return {
+            message: "Users fetched successfully",
+            data: result.users,
+            meta: { statusCode: 200, pagination: result.pagination }
         };
     })
 );
@@ -35,18 +33,14 @@ userController.get(
     authenticate,
     responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
         const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-        const result = await userService.getPublicProfile(req.user._id.toString(), targetUserId);
-        return { 
-            message: "Public profile fetched successfully", 
-            data: result, 
-            meta: { statusCode: 200 } 
+        const result = await userService.getPublicProfile(targetUserId);
+        return {
+            message: "Public profile fetched successfully",
+            data: result,
+            meta: { statusCode: 200 }
         };
     })
 );
-
-// ==========================================
-// 2. STATIC LOGGED-IN USER ROUTES
-// ==========================================
 
 // GET: Fetch logged-in user's profile
 userController.get(
@@ -58,6 +52,20 @@ userController.get(
             message: "Profile fetched successfully", 
             data: result, 
             meta: { statusCode: 200 } 
+        };
+    })
+);
+
+userController.get(
+    '/:userId',
+    authenticate,
+    responseFormatter(async (req: Request, res: Response) => {
+        const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+        const result = await userService.getPublicProfile(userId);
+        return {
+            message: "User profile fetched successfully",
+            data: result,
+            meta: { statusCode: 200 }
         };
     })
 );
@@ -91,8 +99,8 @@ userController.post(
 // PUT: Update logged-in user's profile
 userController.put(
     '/profile', 
-    authenticate, 
-    validation(UpdateUserSchema), 
+    authenticate,
+    validation(UpdateUserSchema),
     responseFormatter(async (req: ISecureRequest, res: Response, _next: NextFunction) => {
         const result = await userService.updateUserProfile(req.user._id.toString(), req.body);
         return { 

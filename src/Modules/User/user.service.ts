@@ -1,6 +1,7 @@
+import { Types } from "mongoose";
 import UserRepository from "../../DB/Repos/user.repo";
+import { BadRequestException, NotFoundException } from "../../Common/Utils";
 import UserModel from "../../DB/Models/user.model";
-import { NotFoundException } from "../../Common/Utils";
 import { UpdateUserBodyType } from "../../Common/Types/type.types";
 
 class UserService {
@@ -19,15 +20,65 @@ class UserService {
         return user.toObject();
     }
 
-    updateUserProfile = async (userId: string, updateData: UpdateUserBodyType) => {
-        delete (updateData as any).password;
-        delete (updateData as any).email;
-        delete (updateData as any).provider;
-        delete (updateData as any).role;
+    getPublicProfile = async (userId: string) => {
+        if (!Types.ObjectId.isValid(userId)) {
+            throw new BadRequestException("Invalid user ID");
+        }
+        const user = await UserModel.findById(userId)
+            .select("firstName lastName profilePicture coverPictures age gender workExperience createdAt");
 
-        const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, { new: true })
-            .select("-password")
-            .exec();
+        if (!user) {
+            throw new NotFoundException("User not found");
+        }
+
+        return user;
+    }
+
+    searchUsers = async (search: string, currentUserId: string, page: number, limit: number) => {
+        const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const filter = {
+            _id: { $ne: currentUserId },
+            $or: [
+                { firstName: { $regex: escapedSearch, $options: "i" } },
+                { lastName: { $regex: escapedSearch, $options: "i" } },
+                { email: { $regex: escapedSearch, $options: "i" } }
+            ]
+        };
+        const skip = (page - 1) * limit;
+        const [users, total] = await Promise.all([
+            UserModel.find(filter)
+                .select("firstName lastName profilePicture")
+                .sort({ firstName: 1, lastName: 1 })
+                .skip(skip)
+                .limit(limit),
+            UserModel.countDocuments(filter)
+        ]);
+
+        return {
+            users,
+            pagination: {
+                totalItems: total,
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                limit
+            }
+        };
+    }
+
+    updateUserProfile = async (userId: string, updateData: UpdateUserBodyType) => {
+        const {
+            password: _password,
+            email: _email,
+            provider: _provider,
+            role: _role,
+            ...safeUpdateData
+        } = updateData as UpdateUserBodyType & {
+            password?: string;
+            email?: string;
+            provider?: string;
+            role?: string;
+        };
+        const updatedUser = await this.userRepository.updateDocument(userId, safeUpdateData);
 
         if (!updatedUser) {
             throw new NotFoundException("User not found to update");
@@ -36,63 +87,6 @@ class UserService {
         return updatedUser.toObject();
     }
 
-    // 2. Search users by name or email (excluding current user)
-    searchUsers = async (currentUserId: string, query: string) => {
-        if (!query || query.trim() === "") return [];
-
-        const searchRegex = new RegExp(query, "i");
-
-        const users = await UserModel.find({
-            _id: { $ne: currentUserId },
-            $or: [
-                { firstName: searchRegex },
-                { lastName: searchRegex },
-                { email: searchRegex }
-            ]
-        }).select("firstName lastName email profilePicture status friends friendRequests").limit(10).exec();
-
-        return users.map((u: any) => {
-            const isFriend = u.friends?.some((f: any) => f.toString() === currentUserId.toString());
-            const isPending = u.friendRequests?.some((req: any) => 
-                (req.senderId ? req.senderId.toString() : req.toString()) === currentUserId.toString()
-            );
-
-            return {
-                _id: u._id,
-                firstName: u.firstName,
-                lastName: u.lastName,
-                email: u.email,
-                profilePicture: u.profilePicture,
-                status: u.status,
-                friendshipStatus: isFriend ? "friends" : isPending ? "pending" : "none"
-            };
-        });
-    }
-
-    // 3. Fetch Public Profile by User ID
-    getPublicProfile = async (currentUserId: string, targetUserId: string) => {
-        const user = await UserModel.findById(targetUserId)
-            .select("firstName lastName email profilePicture status friends friendRequests")
-            .exec();
-
-        if (!user) throw new NotFoundException("User not found");
-
-        const isFriend = user.friends?.some((f: any) => f.toString() === currentUserId.toString());
-        const isPending = user.friendRequests?.some((req: any) => 
-            (req.senderId ? req.senderId.toString() : req.toString()) === currentUserId.toString()
-        );
-
-        return {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            profilePicture: user.profilePicture,
-            status: user.status,
-            friendsCount: user.friends?.length || 0,
-            friendshipStatus: isFriend ? "friends" : isPending ? "pending" : "none"
-        };
-    }
 }
 
 export default new UserService();

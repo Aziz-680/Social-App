@@ -21,37 +21,42 @@ const validation_middleware_1 = __importDefault(require("../../Middlewares/valid
 const user_validators_1 = require("../../Validators/user.validators");
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
 const userController = (0, express_1.Router)();
-// ==========================================
-// 1. DYNAMIC & SEARCH ROUTES (Must be defined first)
-// ==========================================
-// GET: Search users by query
-userController.get('/search', auth_middleware_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res, _next) => __awaiter(void 0, void 0, void 0, function* () {
-    const q = req.query.q || "";
-    const result = yield user_service_1.default.searchUsers(req.user._id.toString(), q);
+userController.get('/search', auth_middleware_1.authenticate, (0, validation_middleware_1.default)(user_validators_1.SearchUsersSchema), (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const q = String(req.query.q);
+    const page = Number((_a = req.query.page) !== null && _a !== void 0 ? _a : 1);
+    const limit = Number((_b = req.query.limit) !== null && _b !== void 0 ? _b : 20);
+    const result = yield user_service_1.default.searchUsers(q, req.user._id.toString(), page, limit);
     return {
-        message: "Search results fetched",
-        data: result,
-        meta: { statusCode: 200 }
+        message: "Users fetched successfully",
+        data: result.users,
+        meta: { statusCode: 200, pagination: result.pagination }
     };
 })));
 // GET: Fetch public profile of another user by ID
 userController.get('/profile/:userId', auth_middleware_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res, _next) => __awaiter(void 0, void 0, void 0, function* () {
     const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-    const result = yield user_service_1.default.getPublicProfile(req.user._id.toString(), targetUserId);
+    const result = yield user_service_1.default.getPublicProfile(targetUserId);
     return {
         message: "Public profile fetched successfully",
         data: result,
         meta: { statusCode: 200 }
     };
 })));
-// ==========================================
-// 2. STATIC LOGGED-IN USER ROUTES
-// ==========================================
 // GET: Fetch logged-in user's profile
 userController.get('/profile', auth_middleware_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res, _next) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield user_service_1.default.getUserProfile(req.user._id.toString());
     return {
         message: "Profile fetched successfully",
+        data: result,
+        meta: { statusCode: 200 }
+    };
+})));
+userController.get('/:userId', auth_middleware_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+    const result = yield user_service_1.default.getPublicProfile(userId);
+    return {
+        message: "User profile fetched successfully",
         data: result,
         meta: { statusCode: 200 }
     };

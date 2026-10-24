@@ -23,3 +23,11 @@ export const UpdateUserSchema = {
         ).optional()
     }).strict() // .strict() prevents them from sending extra fields not defined above
 };
+
+export const SearchUsersSchema = {
+    query: z.object({
+        q: z.string().trim().min(1).max(100),
+        page: z.coerce.number().int().positive().optional().default(1),
+        limit: z.coerce.number().int().positive().max(50).optional().default(20)
+    }).strict()
+};
