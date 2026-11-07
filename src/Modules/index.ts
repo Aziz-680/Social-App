@@ -3,4 +3,5 @@ export {default as userController} from './User/user.controller.js'
 export {default as postController} from './Post/post.controller.js'
 export {default as commentController} from './Comment/comment.controller.js'
 export {default as notificationController} from './Notification/notification.controller.js'
+export {default as chatController} from './Chat/chat.controller.js'
 

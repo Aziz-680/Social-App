@@ -143,6 +143,15 @@ All routes below require the access token in an `Authorization: Bearer YOUR_ACCE
 - `PATCH /api/notification/:id/read` — Mark one notification as read.
 - `PATCH /api/notification/read-all` — Mark all notifications as read.
 
+**Direct chat** (all routes require the access token)
+- `POST /api/chat/conversations` with `{ "recipientId": "<userId>" }` — Create or return the one-to-one conversation.
+- `GET /api/chat/conversations?page=1&limit=30` — List inbox conversations with last message and unread count.
+- `GET /api/chat/conversations/:conversationId/messages?before=<ISO date>&limit=30` — Fetch older-first-paginated message history (maximum 100 per page).
+- `POST /api/chat/conversations/:conversationId/messages` with `{ "text": "Hello" }` — Send a message through REST; it is also broadcast to connected sockets.
+- `POST /api/chat/conversations/:conversationId/read` — Mark incoming messages as read.
+
+The Socket.IO server is attached to the same API host. Authenticate with the existing `token` cookie or initialize the client with `auth: { token: accessToken }`. Join a conversation with `chat:join` and `{ conversationId }`; send `{ conversationId, text }` using `chat:send`; optional events are `chat:typing` (`{ conversationId, isTyping }`) and `chat:read` (`{ conversationId }`). Successful operations acknowledge `{ success: true, data }`; saved messages are emitted as `chat:message`, inbox updates as `chat:inbox:new-message`, and read/typing updates as `chat:read` and `chat:typing`. The server validates conversation membership for every event. Install `socket.io-client` in a frontend client to connect.
+
 Post privacy values are `public`, `friends`, and `only_me`. Feed and profile post lists include pagination in `meta.pagination`; page size is capped at 50.
 
 **Friends**

@@ -1,6 +1,7 @@
-import express, { Application, NextFunction, Request, Response } from 'express';
+import express, { Application, Request, Response } from 'express';
+import { createServer } from 'http';
 import { envConfig } from './config';
-import { authController, commentController, notificationController, postController, userController } from './Modules';
+import { authController, chatController, commentController, notificationController, postController, userController } from './Modules';
 import { dbConnection } from './DB/db.connection.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -8,6 +9,8 @@ import friendController from './Modules/Friend/friend.controller';
 import mongoose from 'mongoose';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
+import { globalErrorHandler } from './Middlewares/global-error-handler.middleware';
+import { initializeChatSocket } from './Modules/Chat/chat.socket';
 
 const app: Application = express();
 app.set('trust proxy', envConfig.app.trustProxyHops);
@@ -40,6 +43,7 @@ function initializeControllers(app: Application) {
     app.use('/api/post', postController);
     app.use('/api/comment', commentController);
     app.use('/api/notification', notificationController);
+    app.use('/api/chat', chatController);
     app.use('/api/friend', friendController);
 
     // Liveness is process-only; readiness also verifies the database connection.
@@ -60,15 +64,8 @@ function initializeControllers(app: Application) {
         res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
     });
 
-    // Global Error Handler Middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-        console.error("Unhandled Backend Error:", err);
-        const requestedStatus = Number(err.statusCode);
-        const statusCode = requestedStatus >= 400 && requestedStatus < 500 ? requestedStatus : 500;
-        res.status(statusCode).json({
-            message: statusCode === 500 ? "Internal Server Error" : (err.message || "Request failed"),
-        });
-    });
+    // Keep the error handler last so errors passed through next(error) reach it.
+    app.use(globalErrorHandler);
 }
 
 // Execute setup in correct order
@@ -77,13 +74,15 @@ initializeControllers(app);
 
 const startServer = async () => {
     await dbConnection();
-    const server = app.listen(envConfig.app.port, () => {
+    const server = createServer(app);
+    const io = initializeChatSocket(server);
+    server.listen(envConfig.app.port, () => {
         console.log(`Server is listening on port ${envConfig.app.port}`);
     });
 
     const shutdown = (signal: string) => {
         console.log(`${signal} received; shutting down`);
-        server.close(() => {
+        io.close(() => {
             void mongoose.disconnect().finally(() => process.exit(0));
         });
     };

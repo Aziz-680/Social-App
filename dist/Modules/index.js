@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notificationController = exports.commentController = exports.postController = exports.userController = exports.authController = void 0;
+exports.chatController = exports.notificationController = exports.commentController = exports.postController = exports.userController = exports.authController = void 0;
 var auth_controller_js_1 = require("./Auth/auth.controller.js");
 Object.defineProperty(exports, "authController", { enumerable: true, get: function () { return __importDefault(auth_controller_js_1).default; } });
 var user_controller_js_1 = require("./User/user.controller.js");
@@ -14,3 +14,5 @@ var comment_controller_js_1 = require("./Comment/comment.controller.js");
 Object.defineProperty(exports, "commentController", { enumerable: true, get: function () { return __importDefault(comment_controller_js_1).default; } });
 var notification_controller_js_1 = require("./Notification/notification.controller.js");
 Object.defineProperty(exports, "notificationController", { enumerable: true, get: function () { return __importDefault(notification_controller_js_1).default; } });
+var chat_controller_js_1 = require("./Chat/chat.controller.js");
+Object.defineProperty(exports, "chatController", { enumerable: true, get: function () { return __importDefault(chat_controller_js_1).default; } });

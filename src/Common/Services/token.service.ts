@@ -113,10 +113,6 @@ class TokenService {
         const signature = this.getSignatureByTypeAndRole({ role: data.role, tokenType });
         const decodedData = this.verifyToken({ token, secret: signature as string }) as ITokenPayload;
 
-        // Use your BaseRepository method
-        
-        console.log(decodedData);
-
         const user = await this.userRepo.findDocumentById(decodedData._id);
         
         if (!user) throw new NotFoundException("User not found");

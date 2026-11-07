@@ -24,8 +24,11 @@ if (Buffer.byteLength(encryptionKey, "utf8") !== 32) {
     throw new Error("ENCRYPTION_KEY must be exactly 32 bytes for AES-256");
 }
 
-const jwtSecret = (name: string): string => {
-    const secret = requiredEnv(name);
+const jwtSecret = (name: string, legacyName: string): string => {
+    const secret = process.env[name]?.trim() || process.env[legacyName]?.trim();
+    if (!secret) {
+        throw new Error(`Missing required environment variable: ${name} (or ${legacyName})`);
+    }
     if (Buffer.byteLength(secret, "utf8") < 32) {
         throw new Error(`${name} must be at least 32 bytes`);
     }
@@ -62,12 +65,12 @@ const envConfig = {
     },
     jwt: {
         user: {
-            accessSignature: jwtSecret("USER_ACCESS_SECRET"),
-            refreshSignature: jwtSecret("USER_REFRESH_SECRET"),
+            accessSignature: jwtSecret("USER_ACCESS_SECRET", "JWT_ACCESS_SECRET_USER"),
+            refreshSignature: jwtSecret("USER_REFRESH_SECRET", "JWT_REFRESH_SECRET_USER"),
         },
         admin: {
-            accessSignature: jwtSecret("ADMIN_ACCESS_SECRET"),
-            refreshSignature: jwtSecret("ADMIN_REFRESH_SECRET"),
+            accessSignature: jwtSecret("ADMIN_ACCESS_SECRET", "JWT_ACCESS_SECRET_ADMIN"),
+            refreshSignature: jwtSecret("ADMIN_REFRESH_SECRET", "JWT_REFRESH_SECRET_ADMIN"),
         },
     },
 };

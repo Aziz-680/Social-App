@@ -1,25 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import { envConfig } from '../config'; // Adjust import path if needed
 
 export const globalErrorHandler = (
     err: any,
-    req: Request,
+    _req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
 ) => {
-    // Determine if it's a known operational error or an unknown bug
-    const statusCode = err.statusCode || 500;
-    const message = err.message || 'Internal Server Error';
-    const code = err.code || 'INTERNAL_SERVER_ERROR';
-    const details = err.details || null;
+    const requestedStatus = Number(err?.statusCode);
+    const statusCode = Number.isInteger(requestedStatus) && requestedStatus >= 400 && requestedStatus <= 599
+        ? requestedStatus
+        : 500;
+    const isExpectedError = statusCode < 500;
 
-    // Send standardized error response
+    // Authentication and other expected client errors are not backend failures.
+    if (!isExpectedError) {
+        console.error('Unhandled backend error:', err);
+    }
+
     res.status(statusCode).json({
         success: false,
-        message,
-        code,
-        details,
-        // Only show the stack trace in development mode for debugging
-        stack: envConfig.app.nodeEnv === 'dev' ? err.stack : undefined
+        message: isExpectedError && typeof err?.message === 'string'
+            ? err.message
+            : 'Internal Server Error',
+        code: isExpectedError && typeof err?.code === 'string'
+            ? err.code
+            : 'INTERNAL_SERVER_ERROR',
+        details: isExpectedError ? (err?.details ?? null) : null,
     });
 };
