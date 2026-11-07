@@ -19,6 +19,7 @@ const Middlewares_1 = require("../../Middlewares");
 const validation_middleware_1 = __importDefault(require("../../Middlewares/validation.middleware"));
 const auth_validators_1 = require("../../Validators/auth.validators");
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
+const config_1 = require("../../config");
 const authController = (0, express_1.Router)();
 authController.get("/me", auth_middleware_1.authenticate, (0, Middlewares_1.responseFormatter)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const secureReq = req;
@@ -44,7 +45,7 @@ authController.post("/login", (0, validation_middleware_1.default)(auth_validato
     const { user, tokens } = result;
     res.cookie("token", tokens.accessToken, {
         httpOnly: true,
-        secure: false,
+        secure: config_1.envConfig.app.nodeEnv === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -64,7 +65,7 @@ authController.post("/google", (0, Middlewares_1.responseFormatter)((req, res) =
     const { user, tokens } = result;
     res.cookie("token", tokens.accessToken, {
         httpOnly: true,
-        secure: false,
+        secure: config_1.envConfig.app.nodeEnv === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -83,7 +84,11 @@ authController.post("/logout", auth_middleware_1.authenticate, (0, Middlewares_1
             status: "offline",
         });
     }
-    res.clearCookie("token");
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: config_1.envConfig.app.nodeEnv === "production",
+        sameSite: "lax",
+    });
     return {
         message: "Logged out successfully",
         data: null,

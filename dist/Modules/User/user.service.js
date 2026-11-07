@@ -27,6 +27,7 @@ const mongoose_1 = require("mongoose");
 const user_repo_1 = __importDefault(require("../../DB/Repos/user.repo"));
 const Utils_1 = require("../../Common/Utils");
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
+const security_service_1 = __importDefault(require("../../Common/Services/security.service"));
 class UserService {
     constructor(userRepository = new user_repo_1.default()) {
         this.userRepository = userRepository;
@@ -36,7 +37,11 @@ class UserService {
             if (!user) {
                 throw new Utils_1.NotFoundException("User not found");
             }
-            return user.toObject();
+            const profile = user.toObject();
+            if (profile.phoneNumber) {
+                profile.phoneNumber = security_service_1.default.decrypt(profile.phoneNumber);
+            }
+            return profile;
         });
         this.getPublicProfile = (userId) => __awaiter(this, void 0, void 0, function* () {
             if (!mongoose_1.Types.ObjectId.isValid(userId)) {
@@ -80,11 +85,18 @@ class UserService {
         });
         this.updateUserProfile = (userId, updateData) => __awaiter(this, void 0, void 0, function* () {
             const _a = updateData, { password: _password, email: _email, provider: _provider, role: _role } = _a, safeUpdateData = __rest(_a, ["password", "email", "provider", "role"]);
+            if (safeUpdateData.phoneNumber) {
+                safeUpdateData.phoneNumber = security_service_1.default.encrypt(safeUpdateData.phoneNumber);
+            }
             const updatedUser = yield this.userRepository.updateDocument(userId, safeUpdateData);
             if (!updatedUser) {
                 throw new Utils_1.NotFoundException("User not found to update");
             }
-            return updatedUser.toObject();
+            const profile = updatedUser.toObject();
+            if (profile.phoneNumber) {
+                profile.phoneNumber = security_service_1.default.decrypt(profile.phoneNumber);
+            }
+            return profile;
         });
     }
 }

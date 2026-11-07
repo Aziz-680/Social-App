@@ -54,6 +54,7 @@ class TokenService {
             return tokenSignature;
         };
         this.createLoginToken = ({ payload, options = {}, requiredToken }) => {
+            var _a, _b, _c, _d;
             const signatures = this.getSignatureByTypeAndRole({ role: payload.role, both: true });
             let accessToken;
             let refreshToken;
@@ -62,26 +63,26 @@ class TokenService {
                     accessToken = this.generateToken({
                         payload,
                         secret: signatures.accessSignature,
-                        options: options.access
+                        options: (_a = options.access) !== null && _a !== void 0 ? _a : { expiresIn: '7d' }
                     });
                     break;
                 case enums_1.TOKEN_TYPES.REFRESH:
                     refreshToken = this.generateToken({
                         payload,
                         secret: signatures.refreshSignature,
-                        options: options.refresh
+                        options: (_b = options.refresh) !== null && _b !== void 0 ? _b : { expiresIn: '30d' }
                     });
                     break;
                 default:
                     accessToken = this.generateToken({
                         payload,
                         secret: signatures.accessSignature,
-                        options: options.access
+                        options: (_c = options.access) !== null && _c !== void 0 ? _c : { expiresIn: '7d' }
                     });
                     refreshToken = this.generateToken({
                         payload,
                         secret: signatures.refreshSignature,
-                        options: options.refresh
+                        options: (_d = options.refresh) !== null && _d !== void 0 ? _d : { expiresIn: '30d' }
                     });
                     break;
             }

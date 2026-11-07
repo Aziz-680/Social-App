@@ -17,7 +17,7 @@ const argon2_1 = __importDefault(require("argon2"));
 const config_1 = require("../../config"); // Adjust path if needed
 const ALGORITHM = 'aes-256-cbc';
 const ENCRYPTION_KEY = config_1.envConfig.encryption.ENCRYPTION_KEY;
-const IV_LENGTH = parseInt(config_1.envConfig.encryption.IV_LENGTH || '16');
+const IV_LENGTH = config_1.envConfig.encryption.IV_LENGTH;
 class SecurityService {
     constructor() {
         // ==========================================

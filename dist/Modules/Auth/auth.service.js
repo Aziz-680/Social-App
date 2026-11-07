@@ -75,7 +75,7 @@ class AuthService {
                 audience: process.env.GOOGLE_CLIENT_ID,
             });
             const payload = ticket.getPayload();
-            if (!payload || !payload.email) {
+            if (!payload || !payload.email || payload.email_verified !== true) {
                 throw new Utils_1.BadRequestException("Invalid Google Token");
             }
             const { email, given_name, family_name, picture } = payload;

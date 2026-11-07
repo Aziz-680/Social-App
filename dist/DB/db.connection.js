@@ -17,12 +17,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const config_1 = require("../config");
 const { database } = config_1.envConfig;
 const dbConnection = () => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        yield mongoose_1.default.connect(database.MONGO_URI);
-        console.log(`DB connection success`, database.MONGO_URI);
-    }
-    catch (error) {
-        console.log(`DB connection failed`, error);
-    }
+    yield mongoose_1.default.connect(database.MONGO_URI);
+    console.log("Database connection established");
 });
 exports.dbConnection = dbConnection;
