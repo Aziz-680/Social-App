@@ -3,6 +3,7 @@ import UserRepository from "../../DB/Repos/user.repo";
 import { BadRequestException, NotFoundException } from "../../Common/Utils";
 import UserModel from "../../DB/Models/user.model";
 import { UpdateUserBodyType } from "../../Common/Types/type.types";
+import SecurityService from "../../Common/Services/security.service";
 
 class UserService {
     constructor(
@@ -17,7 +18,11 @@ class UserService {
             throw new NotFoundException("User not found");
         }
 
-        return user.toObject();
+        const profile = user.toObject();
+        if (profile.phoneNumber) {
+            profile.phoneNumber = SecurityService.decrypt(profile.phoneNumber);
+        }
+        return profile;
     }
 
     getPublicProfile = async (userId: string) => {
@@ -78,13 +83,20 @@ class UserService {
             provider?: string;
             role?: string;
         };
+        if (safeUpdateData.phoneNumber) {
+            safeUpdateData.phoneNumber = SecurityService.encrypt(safeUpdateData.phoneNumber);
+        }
         const updatedUser = await this.userRepository.updateDocument(userId, safeUpdateData);
 
         if (!updatedUser) {
             throw new NotFoundException("User not found to update");
         }
 
-        return updatedUser.toObject();
+        const profile = updatedUser.toObject();
+        if (profile.phoneNumber) {
+            profile.phoneNumber = SecurityService.decrypt(profile.phoneNumber);
+        }
+        return profile;
     }
 
 }

@@ -87,7 +87,7 @@ class AuthService {
         });
 
         const payload = ticket.getPayload();
-        if (!payload || !payload.email) {
+        if (!payload || !payload.email || payload.email_verified !== true) {
             throw new BadRequestException("Invalid Google Token");
         }
 

@@ -9,6 +9,7 @@ import validation from "../../Middlewares/validation.middleware";
 import { RegisterSchema, LoginSchema } from "../../Validators/auth.validators";
 import { RegisterBodyType, LoginBodyType } from "../../Common/Types";
 import UserModel from "../../DB/Models/user.model";
+import { envConfig } from "../../config";
 
 const authController = Router();
 
@@ -52,7 +53,7 @@ authController.post(
 
     res.cookie("token", tokens.accessToken, {
       httpOnly: true,
-      secure: false,
+      secure: envConfig.app.nodeEnv === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -80,7 +81,7 @@ authController.post(
 
     res.cookie("token", tokens.accessToken, {
       httpOnly: true,
-      secure: false,
+      secure: envConfig.app.nodeEnv === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -106,7 +107,11 @@ authController.post(
       });
     }
 
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: envConfig.app.nodeEnv === "production",
+      sameSite: "lax",
+    });
 
     return {
       message: "Logged out successfully",

@@ -19,7 +19,7 @@ A robust, secure, and fully typed RESTful API built for a social media applicati
 ## 📋 Prerequisites
 
 Before running this project, ensure you have the following installed on your machine:
-* [Node.js](https://nodejs.org/) (LTS version recommended)
+* [Node.js](https://nodejs.org/) (version 20 or newer)
 * [Git](https://git-scm.com/)
 * [MongoDB](https://www.mongodb.com/) (Local instance or an Atlas cloud URI)
 
@@ -56,24 +56,27 @@ Nodemon (nodemon): The dev tool that automatically restarts your server when you
 
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-### 3. Set up Environment Variables
+### 3. Configure local environment
 
-Make your .env file 
+Copy `.env.example` to `.env` and set the required values. The application requires `MONGO_URI`, `ENCRYPTION_KEY`, and four independent JWT secrets (`USER_ACCESS_SECRET`, `USER_REFRESH_SECRET`, `ADMIN_ACCESS_SECRET`, and `ADMIN_REFRESH_SECRET`). The encryption key must be exactly 32 UTF-8 bytes; each JWT secret must be at least 32 bytes. Never commit `.env` or reuse the sample values as production secrets.
 
-# Application Port
-PORT=...
+Set Cloudinary credentials for image uploads. `GOOGLE_CLIENT_ID` is only needed for Google sign-in. `CORS_ORIGINS` is a comma-separated list of frontend origins; production requires at least one origin. Set `TRUST_PROXY_HOPS` to the exact number of trusted reverse proxies in front of the app (commonly `1` behind a single load balancer); leave it at `0` when the app is directly exposed.
 
-# MongoDB Connection String (Replace with your own if using Atlas)
-MONGO_URI=...
+### 4. Run locally
 
-# JWT Secret for Authentication
-JWT_SECRET=your_super_secret_jwt_key_here
-
-||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
-### 4. Set up Environment Variables
-
+```bash
 npm run dev
+```
+
+Create a production build with `npm run build`; `npm start` starts the compiled `dist/main.js` application.
+
+## 🚢 Deployment
+
+The repository includes a multi-stage `Dockerfile` that builds the TypeScript application, installs production dependencies, runs as the non-root Node user, and probes `/health/ready`. Build and run the image with your container platform, then inject the environment values listed in `.env.example` through that platform's secret manager. Do not copy local `.env` files into an image.
+
+Use a managed MongoDB deployment reachable by the application, configure `MONGO_URI`, set `NODE_ENV=production`, `PORT`, `CORS_ORIGINS`, all five cryptographic secrets, and Cloudinary credentials. Keep the encryption key stable across deployments: changing it without migrating encrypted phone numbers makes existing values unreadable. The server waits for MongoDB before listening, exits with a non-zero status if startup fails, handles `SIGINT`/`SIGTERM`, and exposes `/health/live` and `/health/ready` probes.
+
+The API enables standard security headers, limits JSON bodies to 1 MB, limits uploads to one 5 MB image, and rate-limits authentication endpoints. For multiple replicas, also configure rate limiting at a shared gateway or use a shared rate-limit store.
 
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 

@@ -76,26 +76,26 @@ class TokenService {
                 accessToken = this.generateToken({
                     payload,
                     secret: signatures.accessSignature,
-                    options: options.access
+                    options: options.access ?? { expiresIn: '7d' }
                 });
                 break;
             case TOKEN_TYPES.REFRESH:
                 refreshToken = this.generateToken({
                     payload,
                     secret: signatures.refreshSignature,
-                    options: options.refresh
+                    options: options.refresh ?? { expiresIn: '30d' }
                 });
                 break;
             default:
                 accessToken = this.generateToken({
                     payload,
                     secret: signatures.accessSignature,
-                    options: options.access
+                    options: options.access ?? { expiresIn: '7d' }
                 });
                 refreshToken = this.generateToken({
                     payload,
                     secret: signatures.refreshSignature,
-                    options: options.refresh
+                    options: options.refresh ?? { expiresIn: '30d' }
                 });
                 break;
         }

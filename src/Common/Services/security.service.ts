@@ -4,7 +4,7 @@ import { envConfig } from '../../config'; // Adjust path if needed
 
 const ALGORITHM = 'aes-256-cbc';
 const ENCRYPTION_KEY = envConfig.encryption.ENCRYPTION_KEY as string; 
-const IV_LENGTH = parseInt(envConfig.encryption.IV_LENGTH || '16');
+const IV_LENGTH = envConfig.encryption.IV_LENGTH;
 
 class SecurityService {
 
