@@ -4,6 +4,7 @@ import UserModel from "../../DB/Models/user.model";
 import PostRepository from "../../DB/Repos/post.repo";
 import { CreatePostBodyType } from "../../Common/Types/type.types";
 import { NotFoundException, ForbiddenException, BadRequestException } from "../../Common/Utils";
+import notificationService from "../Notification/notification.service";
 
 class PostService {
   constructor(private postRepository: PostRepository = new PostRepository()) {}
@@ -207,10 +208,15 @@ class PostService {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
     await this.assertCanViewPost(post, userId);
+    const alreadyLiked = post.likes?.some((id: Types.ObjectId) => id.toString() === userId.toString()) ?? false;
     const updatedPost = await this.postRepository.toggleLike(postId, userId);
 
     if (!updatedPost) {
       throw new NotFoundException("Post not found");
+    }
+
+    if (!alreadyLiked) {
+      await notificationService.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType: "like" });
     }
 
     return updatedPost;
@@ -224,6 +230,7 @@ class PostService {
     const existingReactionIndex = post.reactions.findIndex(
       (r: any) => r.userId.toString() === userId.toString()
     );
+    const isNewReaction = existingReactionIndex === -1;
 
     if (existingReactionIndex > -1) {
       if (post.reactions[existingReactionIndex].type === reactionType) {
@@ -239,6 +246,9 @@ class PostService {
     }
 
     await post.save();
+    if (isNewReaction) {
+      await notificationService.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType });
+    }
     return PostModel.findById(postId)
       .populate("userId", "firstName lastName profilePicture")
       .populate("comments.userId", "firstName lastName profilePicture");
@@ -260,6 +270,11 @@ class PostService {
       originalPostId: originalPost._id
     });
 
+    const sharedPost = originalPost.isRepost && originalPost.originalPostId
+      ? await PostModel.findById(originalPost.originalPostId) || originalPost
+      : originalPost;
+    await notificationService.createPostActivity(sharedPost.userId, userId, sharedPost._id, "share");
+
     return repost.populate("userId", "firstName lastName profilePicture");
   };
 
@@ -273,6 +288,9 @@ class PostService {
 
     post.comments.push({ userId: userId as any, content, createdAt: new Date() } as any);
     await post.save();
+    await notificationService.createPostActivity(post.userId, userId, post._id, "comment", {
+      commentPreview: content.trim().slice(0, 120),
+    });
 
     return PostModel.findById(postId)
       .populate("userId", "firstName lastName profilePicture")

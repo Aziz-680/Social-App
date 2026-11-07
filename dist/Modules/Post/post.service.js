@@ -17,6 +17,7 @@ const post_model_1 = __importDefault(require("../../DB/Models/post.model"));
 const user_model_1 = __importDefault(require("../../DB/Models/user.model"));
 const post_repo_1 = __importDefault(require("../../DB/Repos/post.repo"));
 const Utils_1 = require("../../Common/Utils");
+const notification_service_1 = __importDefault(require("../Notification/notification.service"));
 class PostService {
     constructor(postRepository = new post_repo_1.default()) {
         this.postRepository = postRepository;
@@ -181,13 +182,19 @@ class PostService {
         // 👍 POST REACTIONS & REPOSTS
         // ==========================================
         this.toggleLike = (postId, userId) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            var _b;
             const post = yield post_model_1.default.findById(postId);
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
             yield this.assertCanViewPost(post, userId);
+            const alreadyLiked = (_b = (_a = post.likes) === null || _a === void 0 ? void 0 : _a.some((id) => id.toString() === userId.toString())) !== null && _b !== void 0 ? _b : false;
             const updatedPost = yield this.postRepository.toggleLike(postId, userId);
             if (!updatedPost) {
                 throw new Utils_1.NotFoundException("Post not found");
+            }
+            if (!alreadyLiked) {
+                yield notification_service_1.default.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType: "like" });
             }
             return updatedPost;
         });
@@ -197,6 +204,7 @@ class PostService {
                 throw new Utils_1.NotFoundException("Post not found");
             yield this.assertCanViewPost(post, userId);
             const existingReactionIndex = post.reactions.findIndex((r) => r.userId.toString() === userId.toString());
+            const isNewReaction = existingReactionIndex === -1;
             if (existingReactionIndex > -1) {
                 if (post.reactions[existingReactionIndex].type === reactionType) {
                     post.reactions.splice(existingReactionIndex, 1);
@@ -212,6 +220,9 @@ class PostService {
                 post.likes.addToSet(userId);
             }
             yield post.save();
+            if (isNewReaction) {
+                yield notification_service_1.default.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType });
+            }
             return post_model_1.default.findById(postId)
                 .populate("userId", "firstName lastName profilePicture")
                 .populate("comments.userId", "firstName lastName profilePicture");
@@ -231,6 +242,10 @@ class PostService {
                 isRepost: true,
                 originalPostId: originalPost._id
             });
+            const sharedPost = originalPost.isRepost && originalPost.originalPostId
+                ? (yield post_model_1.default.findById(originalPost.originalPostId)) || originalPost
+                : originalPost;
+            yield notification_service_1.default.createPostActivity(sharedPost.userId, userId, sharedPost._id, "share");
             return repost.populate("userId", "firstName lastName profilePicture");
         });
         // ==========================================
@@ -243,6 +258,9 @@ class PostService {
             yield this.assertCanViewPost(post, userId);
             post.comments.push({ userId: userId, content, createdAt: new Date() });
             yield post.save();
+            yield notification_service_1.default.createPostActivity(post.userId, userId, post._id, "comment", {
+                commentPreview: content.trim().slice(0, 120),
+            });
             return post_model_1.default.findById(postId)
                 .populate("userId", "firstName lastName profilePicture")
                 .populate("comments.userId", "firstName lastName profilePicture");

@@ -29,6 +29,7 @@ function initializeControllers(app) {
     app.use('/api/user', Modules_1.userController);
     app.use('/api/post', Modules_1.postController);
     app.use('/api/comment', Modules_1.commentController);
+    app.use('/api/notification', Modules_1.notificationController);
     app.use('/api/friend', friend_controller_1.default);
     // Health check route
     app.get('/', (_req, res) => {

@@ -135,6 +135,11 @@ All routes below require the access token in an `Authorization: Bearer YOUR_ACCE
 - `GET /api/comment/:postId` — Fetch comments for a post visible to the current user.
 - `POST /api/comment` — Add a comment using JSON `postId` and `content`.
 
+**Notifications**
+- `GET /api/notification?page=1&limit=20` — Fetch the authenticated user's post activity notifications and unread count.
+- `PATCH /api/notification/:id/read` — Mark one notification as read.
+- `PATCH /api/notification/read-all` — Mark all notifications as read.
+
 Post privacy values are `public`, `friends`, and `only_me`. Feed and profile post lists include pagination in `meta.pagination`; page size is capped at 50.
 
 **Friends**

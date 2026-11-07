@@ -1,6 +1,6 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import { envConfig } from './config';
-import { authController, commentController, postController, userController } from './Modules';
+import { authController, commentController, notificationController, postController, userController } from './Modules';
 import { dbConnection } from './DB/db.connection.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -28,6 +28,7 @@ function initializeControllers(app: Application) {
     app.use('/api/user', userController);
     app.use('/api/post', postController);
     app.use('/api/comment', commentController);
+    app.use('/api/notification', notificationController);
     app.use('/api/friend', friendController);
 
     // Health check route

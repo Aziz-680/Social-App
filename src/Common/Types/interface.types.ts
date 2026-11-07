@@ -79,6 +79,18 @@ export interface IPost extends Document {
     updatedAt?: Date;
 }
 
+export interface INotification extends Document {
+    recipientId: Types.ObjectId;
+    actorId: Types.ObjectId;
+    postId: Types.ObjectId;
+    type: 'reaction' | 'comment' | 'share';
+    reactionType?: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry';
+    commentPreview?: string;
+    isRead: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface IHttpAppError {
     statusCode: number
     code: string;
