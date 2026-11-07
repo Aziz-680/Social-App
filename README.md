@@ -76,6 +76,8 @@ The repository includes a multi-stage `Dockerfile` that builds the TypeScript ap
 
 Use a managed MongoDB deployment reachable by the application, configure `MONGO_URI`, set `NODE_ENV=production`, `PORT`, `CORS_ORIGINS`, all five cryptographic secrets, and Cloudinary credentials. Keep the encryption key stable across deployments: changing it without migrating encrypted phone numbers makes existing values unreadable. The server waits for MongoDB before listening, exits with a non-zero status if startup fails, handles `SIGINT`/`SIGTERM`, and exposes `/health/live` and `/health/ready` probes.
 
+For browser cookie authentication and Socket.IO, deploy the frontend and API on HTTPS sibling subdomains of the same registrable domain (for example `app.example.com` and `api.example.com`). Set `CORS_ORIGINS` to the exact frontend origin, and set `TRUST_PROXY_HOPS` to the number of trusted platform proxies in front of this service. The frontend calls the API directly in production so the API's HttpOnly cookie is available to both REST and Socket.IO; unrelated hosting domains may block this cookie under browser third-party-cookie policies. Keep Cloudinary, MongoDB, encryption, and JWT credentials only in the backend deployment's secret manager.
+
 The API enables standard security headers, limits JSON bodies to 1 MB, limits uploads to one 5 MB image, and rate-limits authentication endpoints. For multiple replicas, also configure rate limiting at a shared gateway or use a shared rate-limit store.
 
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -139,7 +141,7 @@ All routes below require the access token in an `Authorization: Bearer YOUR_ACCE
 - `POST /api/comment` — Add a comment using JSON `postId` and `content`.
 
 **Notifications**
-- `GET /api/notification?page=1&limit=20` — Fetch the authenticated user's post activity notifications and unread count.
+- `GET /api/notification?page=1&limit=20` — Fetch the authenticated user's post and message activity notifications and unread count.
 - `PATCH /api/notification/:id/read` — Mark one notification as read.
 - `PATCH /api/notification/read-all` — Mark all notifications as read.
 
@@ -147,10 +149,10 @@ All routes below require the access token in an `Authorization: Bearer YOUR_ACCE
 - `POST /api/chat/conversations` with `{ "recipientId": "<userId>" }` — Create or return the one-to-one conversation.
 - `GET /api/chat/conversations?page=1&limit=30` — List inbox conversations with last message and unread count.
 - `GET /api/chat/conversations/:conversationId/messages?before=<ISO date>&limit=30` — Fetch older-first-paginated message history (maximum 100 per page).
-- `POST /api/chat/conversations/:conversationId/messages` with `{ "text": "Hello" }` — Send a message through REST; it is also broadcast to connected sockets.
+- `POST /api/chat/conversations/:conversationId/messages` with `{ "text": "Hello" }` or multipart fields `text` and one `attachment` — Send a message or one image/document attachment (maximum 10 MB); it is also broadcast to connected sockets. Accepted file types include JPEG, PNG, WebP, GIF, PDF, TXT, CSV, DOC/DOCX, and XLS/XLSX.
 - `POST /api/chat/conversations/:conversationId/read` — Mark incoming messages as read.
 
-The Socket.IO server is attached to the same API host. Authenticate with the existing `token` cookie or initialize the client with `auth: { token: accessToken }`. Join a conversation with `chat:join` and `{ conversationId }`; send `{ conversationId, text }` using `chat:send`; optional events are `chat:typing` (`{ conversationId, isTyping }`) and `chat:read` (`{ conversationId }`). Successful operations acknowledge `{ success: true, data }`; saved messages are emitted as `chat:message`, inbox updates as `chat:inbox:new-message`, and read/typing updates as `chat:read` and `chat:typing`. The server validates conversation membership for every event. Install `socket.io-client` in a frontend client to connect.
+The Socket.IO server is attached to the same API host. Authenticate with the existing `token` cookie or initialize the client with `auth: { token: accessToken }`. Join a conversation with `chat:join` and `{ conversationId }`; send `{ conversationId, text }` using `chat:send`; optional events are `chat:typing` (`{ conversationId, isTyping }`) and `chat:read` (`{ conversationId }`). Successful operations acknowledge `{ success: true, data }`; saved messages are emitted as `chat:message`, inbox updates as `chat:inbox:new-message`, and read/typing updates as `chat:read` and `chat:typing`. Incoming messages also create Activity notifications, which are cleared when the recipient reads that conversation. The server validates conversation membership for every event. Install `socket.io-client` in a frontend client to connect.
 
 Post privacy values are `public`, `friends`, and `only_me`. Feed and profile post lists include pagination in `meta.pagination`; page size is capped at 50.
 

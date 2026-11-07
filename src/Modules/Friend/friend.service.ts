@@ -103,14 +103,14 @@ class FriendService {
 
   getPendingRequests = async (userId: string) => {
     const user = await UserModel.findById(userId)
-      .populate("friendRequests", "firstName lastName profilePicture");
+      .populate("friendRequests", "firstName lastName profilePicture status");
     if (!user) throw new NotFoundException("User not found");
     return user.friendRequests;
   };
 
   getSentRequests = async (userId: string) => {
     const user = await UserModel.findById(userId)
-      .populate("sentRequests", "firstName lastName profilePicture");
+      .populate("sentRequests", "firstName lastName profilePicture status");
     if (!user) throw new NotFoundException("User not found");
     return user.sentRequests;
   };
@@ -118,7 +118,7 @@ class FriendService {
   getFriends = async (userId: string) => {
     this.validateId(userId);
     const user = await UserModel.findById(userId)
-      .populate("friends", "firstName lastName profilePicture");
+      .populate("friends", "firstName lastName profilePicture status");
     if (!user) throw new NotFoundException("User not found");
     return user.friends;
   };

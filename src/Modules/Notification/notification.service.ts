@@ -21,6 +21,22 @@ class NotificationService {
     });
   };
 
+  createMessageActivity = async (
+    recipientId: string | Types.ObjectId,
+    actorId: string | Types.ObjectId,
+    conversationId: string | Types.ObjectId,
+    messagePreview: string,
+  ) => {
+    if (recipientId.toString() === actorId.toString()) return null;
+    return NotificationModel.create({
+      recipientId,
+      actorId,
+      conversationId,
+      type: "message",
+      messagePreview: messagePreview.slice(0, 120),
+    });
+  };
+
   getNotifications = async (userId: string, page: number, limit: number) => {
     if (!Types.ObjectId.isValid(userId)) throw new BadRequestException("Invalid user ID");
     const skip = (page - 1) * limit;
@@ -31,7 +47,7 @@ class NotificationService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("actorId", "firstName lastName profilePicture")
+        .populate("actorId", "firstName lastName profilePicture status")
         .populate("postId", "content media userId isRepost originalPostId"),
       NotificationModel.countDocuments(filter),
       NotificationModel.countDocuments({ ...filter, isRead: false }),

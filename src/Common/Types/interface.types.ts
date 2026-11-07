@@ -82,10 +82,12 @@ export interface IPost extends Document {
 export interface INotification extends Document {
     recipientId: Types.ObjectId;
     actorId: Types.ObjectId;
-    postId: Types.ObjectId;
-    type: 'reaction' | 'comment' | 'share';
+    postId?: Types.ObjectId;
+    conversationId?: Types.ObjectId;
+    type: 'reaction' | 'comment' | 'share' | 'message';
     reactionType?: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry';
     commentPreview?: string;
+    messagePreview?: string;
     isRead: boolean;
     createdAt?: Date;
     updatedAt?: Date;

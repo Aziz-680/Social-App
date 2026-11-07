@@ -48,7 +48,7 @@ class UserService {
                 throw new Utils_1.BadRequestException("Invalid user ID");
             }
             const user = yield user_model_1.default.findById(userId)
-                .select("firstName lastName profilePicture coverPictures age gender workExperience createdAt");
+                .select("firstName lastName profilePicture status coverPictures age gender workExperience createdAt");
             if (!user) {
                 throw new Utils_1.NotFoundException("User not found");
             }
@@ -67,7 +67,7 @@ class UserService {
             const skip = (page - 1) * limit;
             const [users, total] = yield Promise.all([
                 user_model_1.default.find(filter)
-                    .select("firstName lastName profilePicture")
+                    .select("firstName lastName profilePicture status")
                     .sort({ firstName: 1, lastName: 1 })
                     .skip(skip)
                     .limit(limit),

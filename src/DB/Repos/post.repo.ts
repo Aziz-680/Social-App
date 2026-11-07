@@ -23,8 +23,8 @@ class PostRepository extends BaseRepository<IPost> {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
+        .populate("userId", "firstName lastName profilePicture status")
+        .populate("comments.userId", "firstName lastName profilePicture status")
         .exec(),
       PostModel.countDocuments().exec(),
     ]);
@@ -39,8 +39,8 @@ class PostRepository extends BaseRepository<IPost> {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
+        .populate("userId", "firstName lastName profilePicture status")
+        .populate("comments.userId", "firstName lastName profilePicture status")
         .exec(),
       PostModel.countDocuments({ userId }).exec(),
     ]);
@@ -62,7 +62,7 @@ class PostRepository extends BaseRepository<IPost> {
       : { $addToSet: { likes: userId } };
 
     return await PostModel.findByIdAndUpdate(postId, updateQuery, { new: true })
-      .populate("userId", "firstName lastName profilePicture")
+      .populate("userId", "firstName lastName profilePicture status")
       .exec();
   }
 }

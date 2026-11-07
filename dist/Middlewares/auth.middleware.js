@@ -46,7 +46,7 @@ const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         // Fetch fresh user data, exclude password, and populate friends
         const currentUser = yield user_model_1.default.findById(userId)
             .select('-password') // This strictly prevents the password from being returned
-            .populate('friends', 'firstName lastName profilePicture'); // Fetches friend details
+            .populate('friends', 'firstName lastName profilePicture status'); // Fetches friend details
         if (!currentUser) {
             throw new exceptions_1.UnauthorizedException("User no longer exists.");
         }

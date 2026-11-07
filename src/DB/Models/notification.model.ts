@@ -16,11 +16,11 @@ const notificationSchema = new Schema<INotification>({
   postId: {
     type: Schema.Types.ObjectId,
     ref: "Post",
-    required: true,
   },
+  conversationId: { type: Schema.Types.ObjectId, ref: "Conversation" },
   type: {
     type: String,
-    enum: ["reaction", "comment", "share"],
+    enum: ["reaction", "comment", "share", "message"],
     required: true,
   },
   reactionType: {
@@ -31,6 +31,7 @@ const notificationSchema = new Schema<INotification>({
     type: String,
     maxlength: 120,
   },
+  messagePreview: { type: String, maxlength: 120 },
   isRead: {
     type: Boolean,
     default: false,

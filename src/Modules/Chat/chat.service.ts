@@ -3,6 +3,8 @@ import { BadRequestException, NotFoundException } from "../../Common/Utils/Error
 import ConversationModel from "../../DB/Models/conversation.model";
 import MessageModel from "../../DB/Models/message.model";
 import UserModel from "../../DB/Models/user.model";
+import notificationService from "../Notification/notification.service";
+import NotificationModel from "../../DB/Models/notification.model";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_PAGE_SIZE = 100;
@@ -44,13 +46,13 @@ class ChatService {
         { participantKey },
         { $setOnInsert: { participantKey, participants } },
         { new: true, upsert: true, setDefaultsOnInsert: true },
-      ).populate("participants", "firstName lastName profilePicture");
+      ).populate("participants", "firstName lastName profilePicture status");
       return conversation;
     } catch (error) {
       // Another request may win the unique-key upsert race; return its conversation.
       if ((error as { code?: number }).code === 11000) {
         return ConversationModel.findOne({ participantKey })
-          .populate("participants", "firstName lastName profilePicture");
+          .populate("participants", "firstName lastName profilePicture status");
       }
       throw error;
     }
@@ -65,10 +67,10 @@ class ChatService {
         .sort({ lastMessageAt: -1, updatedAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("participants", "firstName lastName profilePicture")
+        .populate("participants", "firstName lastName profilePicture status")
         .populate({
           path: "lastMessage",
-          populate: { path: "senderId", select: "firstName lastName profilePicture" },
+          populate: { path: "senderId", select: "firstName lastName profilePicture status" },
         }),
       ConversationModel.countDocuments(filter),
     ]);
@@ -101,7 +103,7 @@ class ChatService {
     const results = await MessageModel.find(filter)
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
-      .populate("senderId", "firstName lastName profilePicture");
+      .populate("senderId", "firstName lastName profilePicture status");
     const hasMore = results.length > limit;
     const messages = results.slice(0, limit).reverse();
     return {
@@ -111,9 +113,14 @@ class ChatService {
     };
   };
 
-  sendMessage = async (userId: string, conversationId: string, text: string) => {
+  sendMessage = async (
+    userId: string,
+    conversationId: string,
+    text: string,
+    attachment?: { url: string; name: string; mimeType: string; size: number },
+  ) => {
     const normalizedText = text.trim();
-    if (!normalizedText) throw new BadRequestException("Message cannot be empty");
+    if (!normalizedText && !attachment) throw new BadRequestException("Write a message or attach a file");
     if (normalizedText.length > MAX_MESSAGE_LENGTH) {
       throw new BadRequestException(`Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`);
     }
@@ -123,12 +130,26 @@ class ChatService {
       conversationId: conversation._id,
       senderId: userId,
       text: normalizedText,
+      attachments: attachment ? [attachment] : [],
     });
     await ConversationModel.updateOne(
       { _id: conversation._id },
       { $set: { lastMessage: message._id, lastMessageAt: message.createdAt } },
     );
-    await message.populate("senderId", "firstName lastName profilePicture");
+    const recipientId = conversation.participants.find((participant: Types.ObjectId) => participant.toString() !== userId);
+    if (recipientId) {
+      try {
+        await notificationService.createMessageActivity(
+          recipientId,
+          userId,
+          conversation._id,
+          normalizedText || attachment?.name || "Sent an attachment",
+        );
+      } catch (error) {
+        console.error("Could not save chat activity notification:", error);
+      }
+    }
+    await message.populate("senderId", "firstName lastName profilePicture status");
     return message;
   };
 
@@ -138,6 +159,10 @@ class ChatService {
     const result = await MessageModel.updateMany(
       { conversationId: conversation._id, senderId: { $ne: userId }, readAt: null },
       { $set: { readAt } },
+    );
+    await NotificationModel.updateMany(
+      { recipientId: userId, conversationId: conversation._id, type: "message", isRead: false },
+      { $set: { isRead: true } },
     );
     return { conversationId, userId, readAt, modifiedCount: result.modifiedCount };
   };

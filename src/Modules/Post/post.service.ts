@@ -23,7 +23,7 @@ class PostService {
 
     const post = await this.postRepository.createDocument(newPostData);
     return PostModel.findById(post._id)
-      .populate("userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status");
   };
 
   getAllPosts = async (page: number = 1, limit: number = 10) => {
@@ -65,12 +65,12 @@ class PostService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("likes", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
+        .populate("userId", "firstName lastName profilePicture status")
+        .populate("likes", "firstName lastName profilePicture status")
+        .populate("comments.userId", "firstName lastName profilePicture status")
         .populate({
           path: "originalPostId",
-          populate: { path: "userId", select: "firstName lastName profilePicture" }
+          populate: { path: "userId", select: "firstName lastName profilePicture status" }
         }),
       PostModel.countDocuments(query)
     ]);
@@ -90,12 +90,12 @@ class PostService {
     const post = await PostModel.findById(postId);
     if (!post) throw new NotFoundException("Post not found");
     await this.assertCanViewPost(post, viewerId);
-    await post.populate("userId", "firstName lastName profilePicture");
-    await post.populate("likes", "firstName lastName profilePicture");
-    await post.populate("comments.userId", "firstName lastName profilePicture");
+    await post.populate("userId", "firstName lastName profilePicture status");
+    await post.populate("likes", "firstName lastName profilePicture status");
+    await post.populate("comments.userId", "firstName lastName profilePicture status");
     await post.populate({
       path: "originalPostId",
-      populate: { path: "userId", select: "firstName lastName profilePicture" }
+      populate: { path: "userId", select: "firstName lastName profilePicture status" }
     });
     return post;
   };
@@ -141,12 +141,12 @@ class PostService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("userId", "firstName lastName profilePicture")
-        .populate("likes", "firstName lastName profilePicture")
-        .populate("comments.userId", "firstName lastName profilePicture")
+        .populate("userId", "firstName lastName profilePicture status")
+        .populate("likes", "firstName lastName profilePicture status")
+        .populate("comments.userId", "firstName lastName profilePicture status")
         .populate({
           path: "originalPostId",
-          populate: { path: "userId", select: "firstName lastName profilePicture" }
+          populate: { path: "userId", select: "firstName lastName profilePicture status" }
         }),
       PostModel.countDocuments(feedQuery)
     ]);
@@ -179,7 +179,7 @@ class PostService {
       postId,
       { ...(content !== undefined && { content }), ...(privacy !== undefined && { privacy }) },
       { new: true }
-    ).populate("userId", "firstName lastName profilePicture");
+    ).populate("userId", "firstName lastName profilePicture status");
 
     return updatedPost;
   };
@@ -250,8 +250,8 @@ class PostService {
       await notificationService.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType });
     }
     return PostModel.findById(postId)
-      .populate("userId", "firstName lastName profilePicture")
-      .populate("comments.userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status")
+      .populate("comments.userId", "firstName lastName profilePicture status");
   };
 
   repost = async (postId: string, userId: string) => {
@@ -275,7 +275,7 @@ class PostService {
       : originalPost;
     await notificationService.createPostActivity(sharedPost.userId, userId, sharedPost._id, "share");
 
-    return repost.populate("userId", "firstName lastName profilePicture");
+    return repost.populate("userId", "firstName lastName profilePicture status");
   };
 
   // ==========================================
@@ -293,8 +293,8 @@ class PostService {
     });
 
     return PostModel.findById(postId)
-      .populate("userId", "firstName lastName profilePicture")
-      .populate("comments.userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status")
+      .populate("comments.userId", "firstName lastName profilePicture status");
   };
 
   updateComment = async (postId: string, commentId: string, userId: string, content: string) => {
@@ -314,8 +314,8 @@ class PostService {
     await post.save();
 
     return PostModel.findById(postId)
-      .populate("userId", "firstName lastName profilePicture")
-      .populate("comments.userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status")
+      .populate("comments.userId", "firstName lastName profilePicture status");
   };
 
   deleteComment = async (postId: string, commentId: string, userId: string) => {
@@ -338,8 +338,8 @@ class PostService {
     await post.save();
 
     return PostModel.findById(postId)
-      .populate("userId", "firstName lastName profilePicture")
-      .populate("comments.userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status")
+      .populate("comments.userId", "firstName lastName profilePicture status");
   };
 
   reactToComment = async (postId: string, commentId: string, userId: string, reactionType: string) => {
@@ -369,8 +369,8 @@ class PostService {
     await post.save();
 
     return PostModel.findById(postId)
-      .populate("userId", "firstName lastName profilePicture")
-      .populate("comments.userId", "firstName lastName profilePicture");
+      .populate("userId", "firstName lastName profilePicture status")
+      .populate("comments.userId", "firstName lastName profilePicture status");
   };
 }
 

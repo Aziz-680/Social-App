@@ -32,7 +32,7 @@ class PostService {
             const newPostData = Object.assign(Object.assign({}, postData), { userId });
             const post = yield this.postRepository.createDocument(newPostData);
             return post_model_1.default.findById(post._id)
-                .populate("userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status");
         });
         this.getAllPosts = (...args_1) => __awaiter(this, [...args_1], void 0, function* (page = 1, limit = 10) {
             const skip = (page - 1) * limit;
@@ -66,12 +66,12 @@ class PostService {
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("userId", "firstName lastName profilePicture")
-                    .populate("likes", "firstName lastName profilePicture")
-                    .populate("comments.userId", "firstName lastName profilePicture")
+                    .populate("userId", "firstName lastName profilePicture status")
+                    .populate("likes", "firstName lastName profilePicture status")
+                    .populate("comments.userId", "firstName lastName profilePicture status")
                     .populate({
                     path: "originalPostId",
-                    populate: { path: "userId", select: "firstName lastName profilePicture" }
+                    populate: { path: "userId", select: "firstName lastName profilePicture status" }
                 }),
                 post_model_1.default.countDocuments(query)
             ]);
@@ -90,12 +90,12 @@ class PostService {
             if (!post)
                 throw new Utils_1.NotFoundException("Post not found");
             yield this.assertCanViewPost(post, viewerId);
-            yield post.populate("userId", "firstName lastName profilePicture");
-            yield post.populate("likes", "firstName lastName profilePicture");
-            yield post.populate("comments.userId", "firstName lastName profilePicture");
+            yield post.populate("userId", "firstName lastName profilePicture status");
+            yield post.populate("likes", "firstName lastName profilePicture status");
+            yield post.populate("comments.userId", "firstName lastName profilePicture status");
             yield post.populate({
                 path: "originalPostId",
-                populate: { path: "userId", select: "firstName lastName profilePicture" }
+                populate: { path: "userId", select: "firstName lastName profilePicture status" }
             });
             return post;
         });
@@ -134,12 +134,12 @@ class PostService {
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("userId", "firstName lastName profilePicture")
-                    .populate("likes", "firstName lastName profilePicture")
-                    .populate("comments.userId", "firstName lastName profilePicture")
+                    .populate("userId", "firstName lastName profilePicture status")
+                    .populate("likes", "firstName lastName profilePicture status")
+                    .populate("comments.userId", "firstName lastName profilePicture status")
                     .populate({
                     path: "originalPostId",
-                    populate: { path: "userId", select: "firstName lastName profilePicture" }
+                    populate: { path: "userId", select: "firstName lastName profilePicture status" }
                 }),
                 post_model_1.default.countDocuments(feedQuery)
             ]);
@@ -164,7 +164,7 @@ class PostService {
             if (post.userId.toString() !== userId.toString()) {
                 throw new Utils_1.ForbiddenException("You are not authorized to edit this post");
             }
-            const updatedPost = yield post_model_1.default.findByIdAndUpdate(postId, Object.assign(Object.assign({}, (content !== undefined && { content })), (privacy !== undefined && { privacy })), { new: true }).populate("userId", "firstName lastName profilePicture");
+            const updatedPost = yield post_model_1.default.findByIdAndUpdate(postId, Object.assign(Object.assign({}, (content !== undefined && { content })), (privacy !== undefined && { privacy })), { new: true }).populate("userId", "firstName lastName profilePicture status");
             return updatedPost;
         });
         this.deletePost = (postId, userId) => __awaiter(this, void 0, void 0, function* () {
@@ -224,8 +224,8 @@ class PostService {
                 yield notification_service_1.default.createPostActivity(post.userId, userId, post._id, "reaction", { reactionType });
             }
             return post_model_1.default.findById(postId)
-                .populate("userId", "firstName lastName profilePicture")
-                .populate("comments.userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status")
+                .populate("comments.userId", "firstName lastName profilePicture status");
         });
         this.repost = (postId, userId) => __awaiter(this, void 0, void 0, function* () {
             const originalPost = yield post_model_1.default.findById(postId);
@@ -246,7 +246,7 @@ class PostService {
                 ? (yield post_model_1.default.findById(originalPost.originalPostId)) || originalPost
                 : originalPost;
             yield notification_service_1.default.createPostActivity(sharedPost.userId, userId, sharedPost._id, "share");
-            return repost.populate("userId", "firstName lastName profilePicture");
+            return repost.populate("userId", "firstName lastName profilePicture status");
         });
         // ==========================================
         // 💬 COMMENT OPERATIONS (MANAGEMENT & REACTIONS)
@@ -262,8 +262,8 @@ class PostService {
                 commentPreview: content.trim().slice(0, 120),
             });
             return post_model_1.default.findById(postId)
-                .populate("userId", "firstName lastName profilePicture")
-                .populate("comments.userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status")
+                .populate("comments.userId", "firstName lastName profilePicture status");
         });
         this.updateComment = (postId, commentId, userId, content) => __awaiter(this, void 0, void 0, function* () {
             const post = yield post_model_1.default.findById(postId);
@@ -280,8 +280,8 @@ class PostService {
             comment.content = content;
             yield post.save();
             return post_model_1.default.findById(postId)
-                .populate("userId", "firstName lastName profilePicture")
-                .populate("comments.userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status")
+                .populate("comments.userId", "firstName lastName profilePicture status");
         });
         this.deleteComment = (postId, commentId, userId) => __awaiter(this, void 0, void 0, function* () {
             const post = yield post_model_1.default.findById(postId);
@@ -300,8 +300,8 @@ class PostService {
             post.comments.pull(commentId);
             yield post.save();
             return post_model_1.default.findById(postId)
-                .populate("userId", "firstName lastName profilePicture")
-                .populate("comments.userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status")
+                .populate("comments.userId", "firstName lastName profilePicture status");
         });
         this.reactToComment = (postId, commentId, userId, reactionType) => __awaiter(this, void 0, void 0, function* () {
             const post = yield post_model_1.default.findById(postId);
@@ -327,8 +327,8 @@ class PostService {
             }
             yield post.save();
             return post_model_1.default.findById(postId)
-                .populate("userId", "firstName lastName profilePicture")
-                .populate("comments.userId", "firstName lastName profilePicture");
+                .populate("userId", "firstName lastName profilePicture status")
+                .populate("comments.userId", "firstName lastName profilePicture status");
         });
     }
 }

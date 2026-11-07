@@ -31,8 +31,8 @@ class PostRepository extends base_repo_1.default {
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("userId", "firstName lastName profilePicture")
-                    .populate("comments.userId", "firstName lastName profilePicture")
+                    .populate("userId", "firstName lastName profilePicture status")
+                    .populate("comments.userId", "firstName lastName profilePicture status")
                     .exec(),
                 post_model_1.default.countDocuments().exec(),
             ]);
@@ -45,8 +45,8 @@ class PostRepository extends base_repo_1.default {
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("userId", "firstName lastName profilePicture")
-                    .populate("comments.userId", "firstName lastName profilePicture")
+                    .populate("userId", "firstName lastName profilePicture status")
+                    .populate("comments.userId", "firstName lastName profilePicture status")
                     .exec(),
                 post_model_1.default.countDocuments({ userId }).exec(),
             ]);
@@ -65,7 +65,7 @@ class PostRepository extends base_repo_1.default {
                 ? { $pull: { likes: userId } }
                 : { $addToSet: { likes: userId } };
             return yield post_model_1.default.findByIdAndUpdate(postId, updateQuery, { new: true })
-                .populate("userId", "firstName lastName profilePicture")
+                .populate("userId", "firstName lastName profilePicture status")
                 .exec();
         });
     }

@@ -91,7 +91,7 @@ export const authenticate = async (
     // Fetch fresh user data, exclude password, and populate friends
     const currentUser = await UserModel.findById(userId)
       .select('-password') // This strictly prevents the password from being returned
-      .populate('friends', 'firstName lastName profilePicture'); // Fetches friend details
+      .populate('friends', 'firstName lastName profilePicture status'); // Fetches friend details
 
     if (!currentUser) {
       throw new UnauthorizedException("User no longer exists.");

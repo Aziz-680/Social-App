@@ -30,7 +30,7 @@ class UserService {
             throw new BadRequestException("Invalid user ID");
         }
         const user = await UserModel.findById(userId)
-            .select("firstName lastName profilePicture coverPictures age gender workExperience createdAt");
+            .select("firstName lastName profilePicture status coverPictures age gender workExperience createdAt");
 
         if (!user) {
             throw new NotFoundException("User not found");
@@ -52,7 +52,7 @@ class UserService {
         const skip = (page - 1) * limit;
         const [users, total] = await Promise.all([
             UserModel.find(filter)
-                .select("firstName lastName profilePicture")
+                .select("firstName lastName profilePicture status")
                 .sort({ firstName: 1, lastName: 1 })
                 .skip(skip)
                 .limit(limit),

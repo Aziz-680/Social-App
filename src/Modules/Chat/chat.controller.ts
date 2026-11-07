@@ -3,6 +3,7 @@ import { authenticate, ISecureRequest, responseFormatter } from "../../Middlewar
 import { BadRequestException } from "../../Common/Utils/Errors/exceptions";
 import chatService from "./chat.service";
 import { publishChatMessage } from "./chat.socket";
+import { uploadChatAttachment } from "../../Middlewares/upload.middleware";
 
 const chatController = Router();
 
@@ -72,14 +73,27 @@ chatController.get(
 chatController.post(
   "/conversations/:conversationId/messages",
   authenticate,
+  uploadChatAttachment.single("attachment"),
   responseFormatter(async (req: ISecureRequest, _res: Response) => {
     const conversationId = Array.isArray(req.params.conversationId)
       ? req.params.conversationId[0]
       : req.params.conversationId;
-    if (typeof req.body?.text !== "string") {
-      throw new BadRequestException("text is required");
+    if (req.body?.text !== undefined && typeof req.body.text !== "string") {
+      throw new BadRequestException("text must be a string");
     }
-    const message = await chatService.sendMessage(req.user._id.toString(), conversationId, req.body.text);
+    const uploaded = req.file as Express.Multer.File | undefined;
+    const attachment = uploaded ? {
+      url: uploaded.path,
+      name: uploaded.originalname.slice(0, 255),
+      mimeType: uploaded.mimetype,
+      size: uploaded.size,
+    } : undefined;
+    const message = await chatService.sendMessage(
+      req.user._id.toString(),
+      conversationId,
+      req.body?.text ?? "",
+      attachment,
+    );
     await publishChatMessage(message);
     return { message: "Message sent", data: message, meta: { statusCode: 201 } };
   }),

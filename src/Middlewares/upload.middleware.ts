@@ -52,3 +52,64 @@ const imageUploadOptions = {
 // 3. Export specific middlewares for your controllers to use
 export const uploadProfile = multer({ storage: createCloudinaryStorage("social-app-profiles"), ...imageUploadOptions });
 export const uploadPost = multer({ storage: createCloudinaryStorage("social-app-posts"), ...imageUploadOptions });
+
+const chatAttachmentTypes: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "application/pdf": "pdf",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+};
+
+const chatAttachmentStorage: multer.StorageEngine = {
+  _handleFile(_req, file, callback) {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "social-app-chat-attachments",
+        resource_type: "auto",
+        allowed_formats: Object.values(chatAttachmentTypes),
+      },
+      (error, result) => {
+        if (error || !result) {
+          callback(error ?? new Error("Cloudinary returned no upload result"));
+          return;
+        }
+        callback(null, {
+          path: result.secure_url,
+          filename: result.public_id,
+          size: result.bytes,
+        });
+      },
+    );
+    file.stream.pipe(uploadStream);
+  },
+  _removeFile(_req, file, callback) {
+    if (!file.filename) {
+      callback(null);
+      return;
+    }
+    cloudinary.uploader.destroy(file.filename, {
+      resource_type: file.mimetype.startsWith("image/") ? "image" : "raw",
+    })
+      .then(() => callback(null))
+      .catch(callback);
+  },
+};
+
+export const uploadChatAttachment = multer({
+  storage: chatAttachmentStorage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    if (!(file.mimetype in chatAttachmentTypes)) {
+      callback(new Error("Unsupported attachment type"));
+      return;
+    }
+    callback(null, true);
+  },
+});
